@@ -2,19 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Page base. The animated gradient background was removed: the brand uses a static background
+   (pink + blue blooms, see src/landing/landing.css). */
 body {
   margin: 0;
   padding: 0;
-  font-family: 'Inter', 'DM Sans', 'Segoe UI', sans-serif;
   min-height: 100vh;
-  background: linear-gradient(-45deg, #a6d8ff, #ffcde1, #c2e9fb, #f9c5d1);
-  background-size: 300% 300%;
-  animation: gradientFlow 12s ease infinite;
-  color: #333;
-}
-
-@keyframes gradientFlow {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  background: #FAF8FC;
+  color: #0E1B33;
+  font-family: 'DM Sans', system-ui, sans-serif;
 }

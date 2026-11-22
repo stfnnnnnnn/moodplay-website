@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2100 900" preserveAspectRatio="xMidYMid slice">
+  <rect width="2100" height="900" fill="#5C5F66"/>
+  <rect width="2100" height="520" fill="#9DB7D6"/>
+  <g fill="#7E8A99"><rect x="60" y="150" width="260" height="400"/><rect x="340" y="80" width="200" height="470"/><rect x="1480" y="120" width="240" height="430"/><rect x="1740" y="200" width="300" height="350"/></g>
+  <rect x="580" y="230" width="300" height="320" fill="#2A9C9C"/><rect x="1180" y="190" width="260" height="360" fill="#B8A894"/>
+  <rect y="550" width="2100" height="350" fill="#53575F"/>
+  <g fill="#E39B2D"><rect x="820" y="610" width="520" height="150" rx="40"/><rect x="900" y="540" width="330" height="110" rx="40"/></g>
+  <g fill="#303238"><circle cx="910" cy="770" r="42"/><circle cx="1240" cy="770" r="42"/></g>
+  <circle cx="440" cy="420" r="46" fill="#E9C2A6"/><path fill="#C8326B" d="M370 480h140a30 30 0 0 1 30 30v330H340V510a30 30 0 0 1 30-30z"/>
+  <circle cx="1610" cy="390" r="44" fill="#C99A7C"/><path fill="#2F6FD6" d="M1545 448h130a30 30 0 0 1 30 30v360h-190V478a30 30 0 0 1 30-30z"/>
+  <circle cx="1870" cy="460" r="36" fill="#D9A88A"/><g fill="#3E9B5C"><path d="M1820 508h100a26 26 0 0 1 26 26v300h-152V534a26 26 0 0 1 26-26z"/></g>
+</svg>

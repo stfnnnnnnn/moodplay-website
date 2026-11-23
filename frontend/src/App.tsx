@@ -1,10 +1,12 @@
-import { useCallback, useState } from 'react';
+import { Suspense, lazy, useCallback, useState } from 'react';
 import { auth, googleProvider, db } from './firebase';
 import { signInWithPopup } from 'firebase/auth';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import Landing from './landing/Landing';
 import TermsModal from './landing/TermsModal';
-import DemoPlaceholder from './landing/DemoPlaceholder';
+
+// The web demo is its own chunk, loaded only on /demo, so the landing bundle doesn't grow.
+const DemoApp = lazy(() => import('./demo/DemoApp'));
 
 export default function MoodPlayLanding() {
   const [isSignedIn, setIsSignedIn] = useState<boolean>(false);
@@ -50,9 +52,13 @@ export default function MoodPlayLanding() {
     }
   };
 
-  // "Try the demo" target. No demo page exists yet, so /demo shows a placeholder.
+  // "Try the demo" target: the v5 app replica on fake data (src/demo).
   if (window.location.pathname.replace(/\/+$/, '') === '/demo') {
-    return <DemoPlaceholder />;
+    return (
+      <Suspense fallback={<div className="v5-fallback" style={{ minHeight: '100vh', background: '#F6F7FB' }} />}>
+        <DemoApp />
+      </Suspense>
+    );
   }
 
   return (

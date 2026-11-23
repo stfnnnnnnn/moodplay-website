@@ -1,0 +1,170 @@
+/* MoodPlay web demo: v5 "Light table" tokens + base + shared chrome.
+   Ported from docs/design/studio-mockups/v5-base.css. Every rule lives under .v5 (CSS nesting is lowered to
+   ".v5 .x" by the build), so nothing leaks into the landing page. Keyframe names are prefixed v5-.
+
+   Landing collision guard: landing.css is loaded on every route (Landing is a static import) and defines
+   unscoped classes (.btn, .rail, .steps, .hero, .film, .box, .mood, .tab, ...). Demo rules are ".v5 .x" (0,2,0)
+   and load later, so they win wherever both set a property. Properties only the landing sets would still leak,
+   so the :where() block below reverts those classes inside .v5. Prefer demo-only names where possible
+   (fr-hero, fr-film, wsteps, sbars). */
+
+.v5 {
+  --ink:#0E1B33;--ink-2:#4E5A70;--ink-3:#6B7588;--line:#DFE4EC;--line-2:#EEF1F6;
+  --bg:#F6F7FB;--panel:#FFFFFF;--panel-2:#F3F5F9;
+  --pink:#C8326B;--pink-deep:#9E1F50;--pink-soft:#FCE6EE;
+  --blue:#2350B8;--blue-deep:#1A3D8F;--blue-soft:#E4ECFA;
+  --viewer:#141B2B;
+  --r-card:20px;--r-ctl:12px;
+  --shadow:0 24px 60px -36px rgba(35,80,184,.45),0 12px 30px -24px rgba(200,50,107,.3);
+  --ease:cubic-bezier(.2,.8,.2,1);--ease-io:cubic-bezier(.65,0,.35,1);--ease-out:cubic-bezier(.23,1,.32,1);
+  --gutter:32px;
+
+  position:relative;isolation:isolate;min-height:100vh;min-height:100dvh;overflow-x:clip;
+  background:var(--bg);color:var(--ink);font:400 15px/1.55 "DM Sans",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;text-align:left;
+
+  & *, & *::before, & *::after{box-sizing:border-box}
+  & :where(.box,.pin,.tab,.copy,.peek,.player,.cmp,.mood,.scroll,.film,.steps,.hero,.wave,.fine,.extra,.skip,.wrap){all:revert;box-sizing:border-box}
+
+  & h1, & h2, & h3, & h4{font-family:Sora,sans-serif;margin:0;letter-spacing:-.03em;font-weight:700;color:inherit}
+  & p{margin:0}
+  & :focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+  & button{font:inherit;color:inherit}
+  & button, & a, & [role=button]{touch-action:manipulation}
+  & .btn, & .seg button, & .filter button{-webkit-user-select:none;user-select:none}
+  & svg{flex:none}
+  & [hidden]{display:none!important}
+  & .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
+  & .grow{flex:1}
+
+  /* blooms: static, pink top-left + blue bottom-right, never overlapping (no purple) */
+  & .bloom{position:fixed;border-radius:50%;pointer-events:none;z-index:-1}
+  & .bloom.p{width:680px;height:680px;left:-300px;top:-300px;background:radial-gradient(circle,rgba(255,190,214,.7),rgba(255,190,214,0) 65%)}
+  & .bloom.b{width:760px;height:760px;right:-340px;bottom:-320px;background:radial-gradient(circle,rgba(190,212,250,.75),rgba(190,212,250,0) 65%)}
+
+  /* buttons */
+  & .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:0 18px;border-radius:999px;border:0;cursor:pointer;text-decoration:none;font:700 14.5px "DM Sans",sans-serif;white-space:nowrap;transition:background-color .15s,box-shadow .15s,color .15s,transform .1s var(--ease)}
+  & .btn:active:not(:disabled){transform:scale(.98)}
+  & .btn:disabled{cursor:not-allowed}
+  & .btn-pink{background:var(--pink);color:#fff;box-shadow:0 10px 22px -12px rgba(200,50,107,.8)}
+  & .btn-line{background:#fff;color:var(--blue);box-shadow:inset 0 0 0 1.5px var(--blue)}
+  & .btn-quiet{background:transparent;color:var(--ink-2)}
+  & .btn-ghost{background:#fff;color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+  & .btn-blue{background:var(--blue);color:#fff;box-shadow:0 10px 22px -12px rgba(35,80,184,.8)}
+  & .btn-danger{background:var(--pink-deep);color:#fff}
+  & .btn-lg{min-height:52px;padding:0 26px;font-size:16px}
+  @media (hover:hover) and (pointer:fine){
+    & .btn-pink:hover{background:var(--pink-deep)}
+    & .btn-line:hover{background:var(--blue-soft)}
+    & .btn-quiet:hover{background:rgba(14,27,51,.05);color:var(--ink)}
+    & .btn-ghost:hover{box-shadow:inset 0 0 0 1px var(--blue);color:var(--blue)}
+    & .btn-blue:hover{background:var(--blue-deep)}
+    & .btn-danger:hover{background:#7E1640}
+  }
+
+  /* top bar (every page) */
+  & .topbar{position:relative;z-index:5;display:flex;align-items:center;gap:18px;max-width:1440px;margin:0 auto;padding:16px var(--gutter);min-height:72px}
+  & .wmk{display:inline-flex;align-items:center;font:800 23px/1 Sora,sans-serif;letter-spacing:-.04em;text-decoration:none;white-space:nowrap}
+  & .wmk .m{color:var(--blue)} & .wmk .p{color:var(--pink)}
+  & .tnav{display:flex;gap:4px;margin-left:10px}
+  & .tnav a{display:flex;align-items:center;gap:6px;min-height:40px;padding:0 14px;border-radius:999px;color:var(--ink-2);text-decoration:none;font-weight:600;font-size:14.5px;transition:background-color .15s,color .15s}
+  & .tnav a[aria-current=page]{color:var(--blue);background:var(--blue-soft)}
+  & .tnav .n{font-size:12px;font-weight:500;color:var(--ink-3);font-variant-numeric:tabular-nums}
+  @media (hover:hover) and (pointer:fine){& .tnav a:not([aria-current=page]):hover{color:var(--ink);background:rgba(255,255,255,.7)}}
+  & .tactions{display:flex;align-items:center;gap:8px}
+  & .tactions .div{width:1px;height:24px;background:var(--line);margin:0 6px}
+  & .tsearch{display:flex;align-items:center;gap:8px;height:42px;width:220px;padding:0 14px;border-radius:999px;background:#fff;box-shadow:inset 0 0 0 1px var(--line);color:var(--ink-3);cursor:text}
+  & .tsearch input{flex:1;min-width:0;height:100%;border:0;outline:none;background:transparent;font:500 14px "DM Sans",sans-serif;color:var(--ink);padding:0}
+  & .tsearch input::placeholder{color:var(--ink-3)}
+  & .tsearch input::-webkit-search-cancel-button{display:none}
+  & .tsearch:focus-within{box-shadow:inset 0 0 0 1.5px var(--blue)}
+  & .topbar.step{display:grid;grid-template-columns:1fr auto 1fr;width:100%}
+  & .tb-l, & .tb-r{display:flex;align-items:center;gap:14px;min-width:0}
+  & .tb-r{justify-content:flex-end}
+  & .hold{gap:8px;font-size:13.5px;padding:0 14px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  & .hold[aria-pressed=true]{background:var(--blue-soft);color:var(--blue);box-shadow:inset 0 0 0 1px var(--blue)}
+
+  /* step rail (editor pages): done = blue check, current = pink pill, locked = muted */
+  & .rail{display:flex;align-items:center;gap:2px;list-style:none;margin:0;padding:4px;border-radius:999px;background:rgba(255,255,255,.75);box-shadow:inset 0 0 0 1px var(--line);grid-template-columns:none}
+  & .rail li{display:flex}
+  & .rail a{display:flex;align-items:center;gap:7px;min-height:36px;padding:0 14px;border-radius:999px;color:var(--ink-3);text-decoration:none;font-weight:600;font-size:14px;position:relative;white-space:nowrap;transition:background-color .15s,color .15s}
+  & .rail .done a{color:var(--ink-2)}
+  & .rail .done a::before{content:"";width:14px;height:14px;border-radius:50%;background:var(--blue) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 12 4 4 8-8'/%3E%3C/svg%3E") center/10px no-repeat}
+  @media (hover:hover) and (pointer:fine){& .rail .done a:hover{background:var(--blue-soft);color:var(--blue)}}
+  & .rail .now a{color:var(--pink-deep);background:var(--pink-soft)}
+  & .rail .lock a{pointer-events:none;opacity:.55}
+  & .rail .sep{width:10px;height:1.5px;background:var(--line)}
+
+  /* surfaces */
+  & .card{background:var(--panel);border-radius:var(--r-card);box-shadow:var(--shadow);border:1px solid #fff}
+  & .viewer{position:relative;background:var(--viewer);border-radius:var(--r-card);overflow:hidden}
+  & .chip{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;padding:4px 10px;border-radius:999px;white-space:nowrap}
+
+  /* numbered object marker: neutral ink; chosen colour shows as its swatch only */
+  & .obj{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--ink);color:#fff;font:700 12px "DM Sans",sans-serif;flex:none}
+  & .obj.sel{box-shadow:0 0 0 3px #fff,0 0 0 5px var(--pink)}
+  & .sw{display:inline-block;width:22px;height:22px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(14,27,51,.15);flex:none}
+  & .sw.keep, & .sw.none{background:repeating-linear-gradient(45deg,#C9CED8 0 3px,#EEF0F4 3px 6px)}
+  & .kbd{display:inline-flex;align-items:center;min-height:22px;padding:0 7px;border-radius:6px;background:#fff;box-shadow:inset 0 0 0 1px var(--line),0 1px 0 var(--line);font:700 11.5px "DM Sans",sans-serif;color:var(--ink-2)}
+
+  /* scene frame + mood grades (moods from app-direction-v5.md) */
+  & .scene{display:block;width:100%;height:100%}
+  & .grade{position:absolute;inset:0;pointer-events:none;transition:none}
+  & .g-tokyo{background:linear-gradient(180deg,rgba(13,27,61,.6),rgba(224,68,127,.3));mix-blend-mode:multiply}
+  & .g-sunny{background:linear-gradient(180deg,rgba(242,178,58,.5),rgba(232,131,58,.2));mix-blend-mode:soft-light}
+  & .g-blues{background:linear-gradient(180deg,rgba(62,106,140,.6),rgba(143,179,201,.28));mix-blend-mode:soft-light}
+
+  /* project progress: five small step bars beside the date (owner rule 8) */
+  & .sbars{display:inline-flex;gap:3px;flex:none}
+  & .sbars i{width:14px;height:5px;border-radius:5px;background:var(--line)}
+  & .sbars i.d{background:var(--blue)} & .sbars i.n{background:var(--pink)}
+
+  /* toast (Undo): bottom centre, pauses while hovered or focused */
+  & .toast{position:fixed;left:50%;bottom:max(24px,env(safe-area-inset-bottom));z-index:40;display:flex;align-items:center;gap:14px;max-width:calc(100vw - 32px);padding:8px 8px 8px 18px;border-radius:999px;background:var(--ink);color:#fff;font-size:14px;box-shadow:0 18px 40px -18px rgba(14,27,51,.6);transform:translate(-50%,16px);opacity:0;pointer-events:none;transition:opacity .2s var(--ease),transform .2s var(--ease)}
+  & .toast.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+  & .toast span{min-width:0}
+  & .toast .btn{min-height:36px;padding:0 14px;font-size:13.5px;background:rgba(255,255,255,.14);color:#fff;box-shadow:none}
+  @media (hover:hover) and (pointer:fine){& .toast .btn:hover{background:rgba(255,255,255,.24)}}
+  & .toast:not(:has(.btn)){padding-right:18px}
+
+  /* placeholder step page (replaced by the step screens in Tasks 4-6) */
+  & .stub{max-width:1440px;margin:0 auto;padding:4px var(--gutter) 32px;display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:20px}
+  & .stub .viewer{aspect-ratio:21/9}
+  & .stub .card{padding:24px;display:flex;flex-direction:column;gap:12px}
+  & .stub .card p{color:var(--ink-2)}
+  & .stub .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto}
+
+  /* Responsive top bar */
+  @media (max-width:1180px){& .tsearch{display:none} & .tactions .div{display:none}}
+  @media (max-width:1100px){& .topbar.step{grid-template-columns:auto minmax(0,1fr) auto} & .topbar.step nav{min-width:0;display:flex;justify-content:center}}
+  @media (max-width:900px){& .hold .hl{display:none} & .stub{grid-template-columns:minmax(0,1fr)}}
+  @media (max-width:767px){
+    --gutter:16px;
+    /* smaller blooms so pink and blue stay in opposite corners and never overlap on a phone */
+    & .bloom.p{width:520px;height:520px;left:-300px;top:-300px}
+    & .bloom.b{width:560px;height:560px;right:-320px;bottom:-320px}
+    & .topbar{flex-wrap:wrap;gap:8px 10px;padding-top:10px;padding-bottom:10px;min-height:0}
+    & .topbar .wmk{min-height:44px}
+    & .topbar .tnav{order:3;width:100%;margin-left:-6px}
+    & .topbar .tnav a{min-height:44px}
+    & .tactions{gap:6px}
+    & .tactions .btn{min-height:44px;padding:0 14px}
+    & .tactions .btn .lbl-long{display:none}
+    & .tactions .btn-ghost.tut{width:44px;padding:0}
+    & .tactions .btn-ghost.tut .lbl{display:none}
+    & .topbar.step{display:flex}
+    & .topbar.step .tb-r{margin-left:auto}
+    & .topbar.step nav{order:3;width:calc(100% + 2 * var(--gutter));margin:0 calc(-1 * var(--gutter));justify-content:flex-start;overflow-x:auto;scrollbar-width:none;padding:2px var(--gutter);overscroll-behavior-x:contain}
+    & .topbar.step nav::-webkit-scrollbar{display:none}
+    & .rail a{min-height:40px;padding:0 12px}
+  }
+}
+@media (prefers-reduced-motion:reduce){
+  .v5 *, .v5 *::before, .v5 *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;animation-delay:0s!important;transition-duration:.01ms!important;transition-delay:0s!important}
+}
+
+/* screen swaps: one crossfade (View Transitions API), shared thumbnails morph into the project hero */
+::view-transition-old(root),::view-transition-new(root){animation-duration:180ms;animation-timing-function:cubic-bezier(.2,.8,.2,1)}
+::view-transition-group(*){animation-duration:280ms;animation-timing-function:cubic-bezier(.23,1,.32,1)}
+::view-transition-image-pair(*){isolation:auto}
+@media (prefers-reduced-motion:reduce){::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}}

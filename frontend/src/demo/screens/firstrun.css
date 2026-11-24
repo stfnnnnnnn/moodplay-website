@@ -60,9 +60,13 @@
   & .fr-bloom{position:absolute;border-radius:50%;filter:blur(90px);pointer-events:none;z-index:0}
   & .fr-top{position:absolute;top:0;left:0;right:0;z-index:5;display:flex;align-items:center;justify-content:space-between;padding:18px 28px}
   & .scr{position:absolute;inset:0;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:84px 40px 110px;
-    opacity:0;visibility:hidden;transform:translateX(40px);transition:opacity .22s cubic-bezier(.2,.8,.2,1),transform .22s cubic-bezier(.2,.8,.2,1),visibility 0s .22s}
-  & .scr.on{opacity:1;visibility:visible;transform:none;transition-delay:0s}
-  & .scr.past{transform:translateX(-40px)}
+    opacity:0;visibility:hidden;transform:translateX(40px);transition:opacity .2s cubic-bezier(.2,.8,.2,1),transform .2s cubic-bezier(.2,.8,.2,1),visibility 0s .2s}
+  /* slide to slide moves like the demo's step pages (task B1): the new slide comes in 40px from the side you are
+     heading to (300ms), the old one leaves 24px the other way (200ms); Back mirrors it (data-dir) */
+  & .scr.on{opacity:1;visibility:visible;transform:none;transition:opacity .3s cubic-bezier(.2,.8,.2,1),transform .3s cubic-bezier(.2,.8,.2,1),visibility 0s}
+  & .scr.past{transform:translateX(-24px)}
+  &[data-dir=back] .scr:not(.on){transform:translateX(24px)}
+  &[data-dir=back] .scr.past:not(.on){transform:translateX(-40px)}
 
   /* 1 welcome */
   & .fr-hero{text-align:center;padding-bottom:0}

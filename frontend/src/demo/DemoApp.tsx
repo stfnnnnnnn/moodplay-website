@@ -32,7 +32,18 @@ const TITLES: Record<Screen, string> = {
 interface Route { screen: Screen; id?: string; explicit: boolean }
 const readRoute = (): Route => ({ ...screenFromUrl(location.search), explicit: hasScreenParam(location.search) });
 
-type DocWithVT = Document & { startViewTransition?: (cb: () => void) => { finished: Promise<void> } };
+type DocWithVT = Document & { startViewTransition?: (cb: () => void) => { finished: Promise<void>; ready: Promise<void>; updateCallbackDone: Promise<void> } };
+
+/** Flow order of the step screens; the other screens (Home, Projects, a project, the intro) are hubs. */
+/** Screens whose project thumbnails morph into each other (the project hero and the Home / Projects cards). */
+const HUBS = new Set<Screen>(['home', 'projects', 'project']);
+const FLOW: Partial<Record<Screen, number>> = { upload: 1, detect: 2, colorize: 3, mood: 4, render: 5, results: 6 };
+/** fwd / back along the steps (content slides), rise to or from a hub (content lifts in). */
+function vtDirection(from: Screen, to: Screen): 'fwd' | 'back' | 'rise' {
+  const a = FLOW[from], b = FLOW[to];
+  if (a == null || b == null || a === b) return 'rise';
+  return b > a ? 'fwd' : 'back';
+}
 
 export default function DemoApp() {
   return (
@@ -49,14 +60,42 @@ function Shell() {
   const [query, setQuery] = useState('');
   const first = useRef(true);
 
-  // Browser back/forward and go() both arrive here as popstate.
+  // Browser back/forward and go() both arrive here as popstate. The swap runs as a view transition whose
+  // direction (html[data-vt], read by demo.css) comes from where the two screens sit in the flow.
+  const shown = useRef<{ screen: Screen; id?: string }>({ screen: 'home' });
   useEffect(() => {
+    let token = 0;
     const onPop = () => {
       const next = readRoute();
       const apply = () => { setRoute(next); window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); };
       const doc = document as DocWithVT;
       if (doc.startViewTransition && !prefersReducedMotion() && document.visibilityState === 'visible') {
-        try { doc.startViewTransition(() => flushSync(apply)); return; } catch { /* fall through */ }
+        const root = document.documentElement, mine = ++token, from = shown.current;
+        root.dataset.vt = vtDirection(from.screen, next.screen);
+        // Between Home / Projects and a project page, the opened project's thumbnail grows into the hero (and back):
+        // only that one element is named, only for this transition (old side now, new side after the update)
+        const thumbId = HUBS.has(from.screen) && HUBS.has(next.screen)
+          ? (next.screen === 'project' ? next.id : from.screen === 'project' ? from.id : undefined) : undefined;
+        const pick = () => (thumbId ? document.querySelector<HTMLElement>(`.v5 [data-thumb="${CSS.escape(thumbId)}"]`) : null);
+        const named: HTMLElement[] = [];
+        const name = (el: HTMLElement | null) => { if (el) { el.style.viewTransitionName = 'mp-thumb'; named.push(el); } };
+        const unname = () => { named.forEach(el => { el.style.viewTransitionName = ''; }); named.length = 0; };
+        name(pick());
+        const clear = () => { unname(); if (mine === token) delete root.dataset.vt; };
+        try {
+          const vt = doc.startViewTransition(() => {
+            const had = named.length > 0;
+            unname();
+            flushSync(apply);
+            if (had) name(pick());
+          });
+          // a newer transition skips this one: only the latest clears the attribute
+          vt.finished.then(clear, clear);
+          // a transition skipped by a newer one rejects ready (AbortError): expected, never logged
+          vt.ready.catch(() => {});
+          vt.updateCallbackDone.catch(() => {});
+          return;
+        } catch { clear(); /* fall through */ }
       }
       apply();
     };
@@ -75,6 +114,7 @@ function Shell() {
   const [tourLink] = useState(() => deepLinkStep(location.search) != null);
   const showIntro = route.screen === 'intro' || (!route.explicit && !state.firstRunSeen && !tourLink);
   const screen: Screen = showIntro ? 'intro' : route.screen;
+  useEffect(() => { shown.current = { screen, id: route.id }; }, [screen, route.id]);
 
   // Deep link / refresh mid-flow: a step screen without a current project opens one (an in-progress one first).
   const needsProject = PROJECT_SCREENS.includes(screen) && !current;

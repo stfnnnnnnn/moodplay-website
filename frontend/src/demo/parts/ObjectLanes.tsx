@@ -4,7 +4,8 @@ import { CLIP, clipTime, clipTimeNear, num as n } from '../format';
 
 /* Detect's signature move (v5-detect.html): the filmstrip and one thin lane per object share one time axis.
    Blue bars = where the object was found; hatched pink gaps = where it went missing (click one to jump there).
-   During detection a bar fills along the top of the filmstrip and the lanes reveal up to the progress. */
+   During detection a bar fills along the top of the filmstrip and the lanes reveal up to the progress; a lane
+   added by name fills in while its scan runs. */
 
 export type Gap = [number, number];
 export interface LaneObject { id: number; name: string; gaps: Gap[]; pending?: boolean }
@@ -48,11 +49,12 @@ export const ObjectLanes = memo(function ObjectLanes({ objs, sel, head, running,
           const found: Gap[] = [];
           let at = 0;
           segs.forEach(g => { if (g[0] > at) found.push([at, g[0]]); at = Math.max(at, g[1]); });
-          if (at < 1 && !o.pending) found.push([at, 1]);
+          if (at < 1) found.push([at, 1]);
           return (
             <div key={o.id} className={'lane-row' + (o.id === sel ? ' sel' : '')} data-o={o.id}>
               <div className="rowlbl"><span className="obj">{o.id}</span><span className="nm">{o.name}</span></div>
-              <div className="track" style={running ? { clipPath: `inset(0 ${(1 - prog) * 100}% 0 0)` } : undefined}>
+              {/* pending: add by name is still looking for it, so the lane fills in with the scan over the frame */}
+              <div className={'track' + (o.pending ? ' filling' : '')} style={running ? { clipPath: `inset(0 ${(1 - prog) * 100}% 0 0)` } : undefined}>
                 {found.map((s, i) => <i key={i} className="seg-f" style={{ left: s[0] * 100 + '%', width: (s[1] - s[0]) * 100 + '%' }} />)}
                 {segs.map((g, i) => (
                   <button key={i} type="button" className="gap" data-tour="tut_gap" style={{ left: g[0] * 100 + '%', width: `max(8px, ${(g[1] - g[0]) * 100}%)` }}

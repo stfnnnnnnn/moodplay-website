@@ -67,9 +67,9 @@ export const STEPS: TourStep[] = [
   { page: 'detect', screens: ['detect'], sel: T('tut_lanes'), kind: 'act', act: T('tut_lanes') + ' [data-o="5"] ' + T('tut_gap'), place: 'top',
     t: 'One lane per object', b: 'Each bar shows where an object was found. Pink gaps are where it went missing.', doIt: 'Click the first gap in lane 5 to jump there' },
   { page: 'detect', screens: ['detect'], sel: T('tut_frame_tools'), kind: 'try', place: 'right left',
-    t: 'Fix an object with + and −', b: 'Jumping to a gap turns on + Add area, so clicking Person 3 on the frame adds it back. − Remove area takes away anything that isn’t part of it.' },
+    t: 'Fix an object with + and −', b: 'Jumping to a gap turns on + Add area, so clicking Person 3 on the frame adds it back. Auto finds its edges, or draw a Rectangle or Free shape. − Remove area takes it out of this frame.' },
   { page: 'detect', screens: ['detect'], sel: T('tut_add_by_name'), kind: 'try', place: 'left',
-    t: 'Add something it missed', b: 'Type a name, like dog or lamp post, and MoodPlay looks for it in every frame. You can also click it on the frame.' },
+    t: 'Add something it missed', b: 'Type a name, like building, and MoodPlay looks for it in every frame and marks each one it finds. You can also click it on the frame.' },
   { page: 'detect', screens: ['detect'], sel: T('btn_to_colorize'), kind: 'nav', act: T('btn_to_colorize'), place: 'left top',
     t: 'Objects look right?', b: 'Next you give each object its colour.', doIt: 'Click Continue to colorize' },
 

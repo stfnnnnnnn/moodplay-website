@@ -5,7 +5,7 @@ import { TopBar } from '../chrome/TopBar';
 import { IconCheck } from '../chrome/Icons';
 import { Scene } from '../scene';
 import { coloredCount, useDemo, type MoodKey, type SceneObject } from '../store';
-import { TOUR_FIRST, demoHref, go } from '../nav';
+import { demoHref, go } from '../nav';
 import { CLIP_PHRASE, MOOD_LABEL, realMood } from '../format';
 import { EmptyStep } from '../parts/EmptyStep';
 import { StopConfirm } from '../parts/StopConfirm';
@@ -80,6 +80,8 @@ export default function RenderScreen() {
   const cancelBtn = useRef<HTMLButtonElement>(null);
   const againBtn = useRef<HTMLButtonElement>(null);
   const lastQ = useRef(0), lastSt = useRef(1);
+  // a top-bar leave held by the stop confirm (task B1): Stop render runs it, Keep rendering / a new run / the end drop it
+  const leaveTo = useRef<(() => void) | null>(null);
 
   // the run: wall clock × speed, painted every 100 ms
   useEffect(() => {
@@ -90,7 +92,7 @@ export default function RenderScreen() {
       const now = ((performance.now() - wall0) / 1000) * speed;
       if (now >= sim.total) {
         window.clearInterval(id);
-        setT(sim.total); setPhase('done'); setConfirming(false); setAuto(5);
+        setT(sim.total); setPhase('done'); setConfirming(false); setAuto(5); leaveTo.current = null;
         if (!finished.current) { finished.current = true; dispatch({ type: 'finishRender' }); }
         setLive(`Completed in ${fmt(sim.total)}. Results are ready.`);
         requestAnimationFrame(() => openBtn.current?.focus({ preventScroll: true }));
@@ -112,13 +114,18 @@ export default function RenderScreen() {
     return () => window.clearTimeout(id);
   }, [auto, frozen]);
 
+  // Home, Back or the wordmark mid-run ask first with the same "Stop rendering?" (task B1); Stop render then
+  // stops the run and carries on to where the user was going, Keep rendering stays
   const stop = () => {
     setPhase('stopped'); setConfirming(false);
     setLive('Render stopped. Nothing was saved.');
+    const next = leaveTo.current;
+    leaveTo.current = null;
+    if (next) { next(); return; }
     requestAnimationFrame(() => againBtn.current?.focus());
   };
-  const again = () => { lastQ.current = 0; lastSt.current = 1; setT(0); setPhase('run'); setRunKey(k => k + 1); };
-  const keep = useCallback(() => { setConfirming(false); requestAnimationFrame(() => cancelBtn.current?.focus()); }, []);
+  const again = () => { leaveTo.current = null; lastQ.current = 0; lastSt.current = 1; setT(0); setPhase('run'); setRunKey(k => k + 1); };
+  const keep = useCallback(() => { leaveTo.current = null; setConfirming(false); requestAnimationFrame(() => cancelBtn.current?.focus()); }, []);
 
   const done = phase === 'done', stopped = phase === 'stopped';
   const r = done ? { st: sim.stages, ip: 1, p: 1, msg: '', done: FRAMES } : sim.at(t);
@@ -143,7 +150,7 @@ export default function RenderScreen() {
   }
   return (
     <>
-      <TopBar kind="step" step={5} reached={done ? 5 : 4} lockPast={!done && !stopped} nowNote={done ? ' (ready)' : ' (rendering)'} tourStep={TOUR_FIRST.render} />
+      <TopBar kind="step" step={5} reached={done ? 5 : 4} lockPast={!done && !stopped} nowNote={done ? ' (ready)' : ' (rendering)'}        screen="render" onLeave={leave => { if (done || stopped) return false; leaveTo.current = leave; setConfirming(true); return true; }} />
       <main className={'sp sp-render' + (confirming ? ' confirming' : '') + (done ? ' is-done' : '') + (stopped ? ' is-stopped' : '')}>
         <section className="sp-stage" aria-label="Latest finished frame">
           <div className="viewer rstage">

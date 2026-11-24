@@ -13,7 +13,8 @@ export const STEP_SCREENS = ['upload', 'detect', 'colorize', 'mood', 'results'] 
 /** Screens that belong to one project (need a current project). */
 export const PROJECT_SCREENS: readonly Screen[] = ['upload', 'detect', 'colorize', 'mood', 'render', 'results'];
 
-/** First tour step of each page (tutorial-v5.md), used by the Tutorial buttons. */
+/** First tour step of each page (tutorial-v5.md). The Tutorial buttons (Home, Projects, a project page) start there; the
+ *  step-page entries stay for completeness (the step pages have no Tutorial button since B1 fix round 1). */
 export const TOUR_FIRST: Record<Screen, number> = { intro: 1, home: 1, upload: 4, detect: 8, colorize: 12, mood: 16, render: 19, results: 21, projects: 24, project: 25 };
 
 const isScreen =(s: string | null): s is Screen => !!s && (SCREENS as readonly string[]).includes(s);
@@ -53,9 +54,20 @@ export function demoHref(screen: Screen, params?: { id?: string; tour?: number }
   return basePath() + '?' + q.toString();
 }
 
+/** A demo history entry: a screen and, for a project page or a project's own Upload, its id. */
+export interface Entry { screen: Screen; id?: string }
+
+/** The demo entry the current history entry was opened from (go() records it), or null on a fresh load. */
+export function fromEntry(): Entry | null {
+  const f = (history.state as { from?: Entry } | null)?.from;
+  return f && isScreen(f.screen) ? f : null;
+}
+
 export function go(screen: Screen, params?: { id?: string; tour?: number }, opts?: { replace?: boolean }): void {
   const href = demoHref(screen, params);
-  const state = { screen, ...params };
+  // remember where this entry was opened from, so a step page's Back can use real history (a replace keeps it)
+  const from: Entry | undefined = opts?.replace ? fromEntry() ?? undefined : screenFromUrl(location.search);
+  const state = { screen, ...params, from };
   if (opts?.replace) history.replaceState(state, '', href);
   else history.pushState(state, '', href);
   window.dispatchEvent(new PopStateEvent('popstate', { state }));
@@ -69,4 +81,29 @@ export function linkClick(screen: Screen, params?: { id?: string; tour?: number 
     before?.();
     go(screen, params);
   };
+}
+
+/** Where a step page's Back goes (task B1): the previous step in the flow. Upload and Results go back to the
+ *  project page when they were opened from it; Upload otherwise goes Home. Detect goes back to the project's own
+ *  clip (Upload with ?id=, as the step rail does). */
+export function backTarget(screen: Screen, projectId?: string): Entry & { label: string } {
+  const f = fromEntry();
+  const fromProject = f?.screen === 'project' && !!f.id;
+  switch (screen) {
+    case 'upload': return fromProject ? { screen: 'project', id: f!.id, label: 'project' } : { screen: 'home', label: 'Home' };
+    case 'detect': return { screen: 'upload', id: projectId, label: 'Upload' };
+    case 'colorize': return { screen: 'detect', label: 'Detect' };
+    case 'mood': return { screen: 'colorize', label: 'Colorize' };
+    case 'render': return { screen: 'mood', label: 'Mood' };
+    case 'results': return fromProject ? { screen: 'project', id: f!.id, label: 'project' } : { screen: 'mood', label: 'Mood' };
+    default: return { screen: 'home', label: 'Home' };
+  }
+}
+
+/** Go to `to`: back in history when the previous entry is that same demo screen (keeps the history short and
+ *  restores it as it was), else a new entry. */
+export function goTo(to: Entry): void {
+  const f = fromEntry();
+  if (f && f.screen === to.screen && (f.id ?? null) === (to.id ?? null)) history.back();
+  else go(to.screen, to.id ? { id: to.id } : undefined);
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './projects.css';
 import { TopBar } from '../chrome/TopBar';
 import { IconChev, IconDownload, IconDup, IconLeft, IconPen, IconPlay, IconTrash } from '../chrome/Icons';
@@ -134,7 +134,7 @@ function ProjectView({ p, onLeave }: { p: Project; onLeave: () => void }) {
       </div>
 
       <div className="hero">
-        <div className="hframe" style={{ viewTransitionName: 'pthumb-' + p.id } as CSSProperties}>
+        <div className="hframe" data-thumb={p.id}>
           <Scene variant="gray" objects={p.objects} mood={shownMood(p)} viewBox={CROP} videoSrc={p.videoSrc} />
           <span className={'badge ' + (p.finished ? 'fin' : 'wip')}>{p.finished ? 'Finished' : 'In progress'}</span>
         </div>
@@ -293,7 +293,7 @@ function Rail({ current, projects }: { current: Project; projects: Project[] }) 
             <li key={q.id}>
               <a className="ri" href={demoHref('project', { id: q.id })} aria-current={cur ? 'page' : undefined}
                 onClick={cur ? e => e.preventDefault() : linkClick('project', { id: q.id }, clearFromGrid)}>
-                <span className="rt" style={cur ? undefined : { viewTransitionName: 'pthumb-' + q.id } as CSSProperties}>
+                <span className="rt" data-thumb={cur ? undefined : q.id}>
                   <Scene variant="gray" objects={q.objects} mood={shownMood(q)} viewBox={CROP} />
                 </span>
                 <span className="rx">

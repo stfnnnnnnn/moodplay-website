@@ -1,10 +1,13 @@
+import { REGION, SAMPLE_REGIONS, boundPoly, isRegionId, shapeBox, type Shape } from './sceneRegions';
 import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useReducer, useRef, type ReactNode } from 'react';
 
 /* ---------- Types (fixed interface, see docs/superpowers/plans/2026-11-23-v5-web-demo.md) ---------- */
 export type Step = 1 | 2 | 3 | 4 | 5;                       // Upload, Detect, Colorize, Mood, Results
 export type MoodKey = 'none' | 'tokyo' | 'sunny' | 'blues';  // same keys as landing/data.ts MOODS
-/** box = [x0, y0, x1, y1] in the scene's 2100×900 viewBox. */
-export interface SceneObject { id: number; label: string; color: string | 'retain' | null; box: [number, number, number, number] }
+/** box = [x0, y0, x1, y1] in the scene's 2100×900 viewBox. shape = the object's mask: a region of the scene
+ *  (sceneRegions.ts) or a custom polygon drawn in Detect; every view colours exactly that shape. */
+export interface SceneObject { id: number; label: string; color: string | 'retain' | null; box: [number, number, number, number]; shape: Shape }
+export type { Shape };
 /** A finished render. `mood` and `scene` are what it was rendered with (a snapshot), so Results and "Open at step"
  *  show and restore this render, not the project's later edits. `scene` is missing only in sessions saved before it existed. */
 export interface Render { id: string; at: string; kind: 'Colorize + mood' | 'Colorize only' | 'Mood only'; mood: MoodKey; frames: number; objects: number; scene?: SceneObject[]; videoSrc?: string }
@@ -31,16 +34,15 @@ type InternalAction =
 /* ---------- Sample data (v5-home.html / v5-projects-b.html) ---------- */
 export const STEP_NAMES = ['Upload', 'Detect', 'Colorize', 'Mood', 'Results'] as const;
 export const SAMPLE_COLORS = ['#C8326B', '#2A9C9C', '#E39B2D', '#2F6FD6', '#3E9B5C'];
-const OBJECT_DEFS: { label: string; box: [number, number, number, number] }[] = [
-  { label: 'Person 1', box: [340, 374, 540, 840] },
-  { label: 'Shopfront', box: [580, 230, 880, 550] },
-  { label: 'Car', box: [820, 540, 1340, 812] },
-  { label: 'Person 2', box: [1515, 346, 1705, 838] },
-  // top edge matches the mockups' label position (40%) rather than the head (424)
-  { label: 'Person 3', box: [1794, 360, 1946, 834] },
-];
+// the five objects the sample clip's detection finds (regions in sceneRegions.ts); Person 3's box top matches the
+// mockups' label position (40%) rather than the head (424)
+const OBJECT_TOP: Partial<Record<number, number>> = { 5: 360 };
 export const makeObjects = (colors: (string | 'retain' | null)[]): SceneObject[] =>
-  OBJECT_DEFS.map((d, i) => ({ id: i + 1, label: d.label, color: colors[i] ?? null, box: [...d.box] as [number, number, number, number] }));
+  SAMPLE_REGIONS.map((id, i) => {
+    const r = REGION[id], box = [...r.box] as SceneObject['box'];
+    box[1] = OBJECT_TOP[i + 1] ?? box[1];
+    return { id: i + 1, label: r.label, color: colors[i] ?? null, box, shape: { kind: 'region', id } };
+  });
 
 const H = 3600e3, D = 24 * H;
 const T0 = Date.now();
@@ -89,7 +91,7 @@ export function copyName(name: string): string {
 }
 
 /* Limits shared by the inputs and the stored-state check, so the demo never writes a state it would reject. */
-export const LIMITS = { name: 200, label: 200, objects: 50, renders: 200, projects: 200, tourSteps: 26 } as const;
+export const LIMITS = { name: 200, label: 200, objects: 50, renders: 200, projects: 200, tourSteps: 26, points: 64 } as const;
 const clampName = (n: string) => [...n].slice(0, LIMITS.name).join('');
 
 export const initialState: DemoState = {
@@ -103,7 +105,8 @@ export const initialState: DemoState = {
 /* ---------- Reducer ---------- */
 const now = () => new Date().toISOString();
 const colored = (p: Project) => p.objects.filter(o => o.color && o.color !== 'retain').length;
-const cloneObjects = (list: SceneObject[]): SceneObject[] => list.map(o => ({ ...o, box: [...o.box] as SceneObject['box'] }));
+const cloneShape = (s: Shape): Shape => (s.kind === 'poly' ? { kind: 'poly', pts: [...s.pts] } : { ...s });
+const cloneObjects = (list: SceneObject[]): SceneObject[] => list.map(o => ({ ...o, box: [...o.box] as SceneObject['box'], shape: cloneShape(o.shape) }));
 
 function patchCurrent(s: DemoState, f: (p: Project) => Project): DemoState {
   if (!s.currentId) return s;
@@ -206,11 +209,37 @@ const MOODS: readonly U[] = ['none', 'tokyo', 'sunny', 'blues'];
 const KINDS: readonly U[] = ['Colorize + mood', 'Colorize only', 'Mood only'];
 const nowIso = () => new Date().toISOString();
 
+/* An object's shape: a region id that exists in the table, or a polygon bounded like the ones Detect draws
+   (integers inside the viewBox, 3–64 points). A session saved before shapes existed has none: the five sample
+   ids get their region back and any other object keeps its box as a rectangle. Anything else is invalid. */
+function repairShape(s: U, id: number, box: SceneObject['box']): Shape | null {
+  if (s === undefined) {
+    if (id >= 1 && id <= SAMPLE_REGIONS.length) return { kind: 'region', id: SAMPLE_REGIONS[id - 1] };
+    const [x0, y0, x1, y1] = box, pts = boundPoly([x0, y0, x1, y0, x1, y1, x0, y1]);
+    return pts ? { kind: 'poly', pts } : null;
+  }
+  if (!isObj(s)) return null;
+  if (s.kind === 'region') return isRegionId(s.id) && REGION[s.id].detectable ? { kind: 'region', id: s.id } : null;
+  if (s.kind === 'poly' && Array.isArray(s.pts) && s.pts.length <= 4 * LIMITS.points) {
+    const pts = boundPoly(s.pts as number[]);
+    return pts ? { kind: 'poly', pts } : null;
+  }
+  return null;
+}
 function repairObject(o: U): SceneObject | null {
   if (!isObj(o) || !isInt(o.id) || o.id < 1 || o.id > 9999 || typeof o.label !== 'string') return null;
   if (!Array.isArray(o.box) || o.box.length !== 4 || !o.box.every(n => typeof n === 'number' && Number.isFinite(n))) return null;
   const color = o.color === 'retain' || (typeof o.color === 'string' && HEX.test(o.color)) ? o.color : null;
-  return { id: o.id, label: cut(o.label, LIMITS.label), color, box: o.box as SceneObject['box'] };
+  const shape = repairShape(o.shape, o.id, o.box as SceneObject['box']);
+  if (!shape) return null;
+  // the box always follows the shape (a stored box is not trusted: it may predate a region's geometry or be tampered
+  // with); a sample object on its own region keeps the mockups' label position (OBJECT_TOP), as makeObjects does
+  let box: SceneObject['box'];
+  if (shape.kind === 'region') {
+    box = [...REGION[shape.id].box] as SceneObject['box'];
+    if (SAMPLE_REGIONS[o.id - 1] === shape.id) box[1] = OBJECT_TOP[o.id] ?? box[1];
+  } else box = shapeBox(shape);
+  return { id: o.id, label: cut(o.label, LIMITS.label), color, box, shape };
 }
 function repairRender(r: U): Render | null {
   if (!isObj(r) || typeof r.id !== 'string' || !r.id || r.id.length > 64 || !KINDS.includes(r.kind) || !MOODS.includes(r.mood)) return null;
@@ -223,8 +252,10 @@ function repairRender(r: U): Render | null {
   return out;
 }
 function repairObjects(list: U[]): SceneObject[] {
-  const seen = new Set<number>();
-  return list.map(repairObject).filter((o): o is SceneObject => !!o && !seen.has(o.id) && !!seen.add(o.id)).slice(0, LIMITS.objects);
+  // unique ids, and one object per region (a region marked twice keeps its first object)
+  const seen = new Set<number>(), regions = new Set<string>();
+  const fresh = (o: SceneObject) => o.shape.kind !== 'region' || (!regions.has(o.shape.id) && !!regions.add(o.shape.id));
+  return list.map(repairObject).filter((o): o is SceneObject => !!o && !seen.has(o.id) && fresh(o) && !!seen.add(o.id)).slice(0, LIMITS.objects);
 }
 function repairProject(p: U): Project | null {
   if (!isObj(p) || typeof p.id !== 'string' || !p.id || p.id.length > 64 || typeof p.name !== 'string' || !p.name.trim() || !isInt(p.step)) return null;
@@ -341,3 +372,6 @@ export function useDemoExtra() { return useCtx().extra; }
 export const shownRenderOf = (p: Project): Render | null => p.renders.find(r => r.id === p.shownRender) ?? p.renders[0] ?? null;
 export const coloredCount = colored;
 export const isColor = (c: SceneObject['color']): c is string => !!c && c !== 'retain';
+/** An object's shape; objects built before shapes existed fall back to their sample region by id. */
+export const shapeOf = (o: Pick<SceneObject, 'id'> & { shape?: Shape }): Shape | null =>
+  o.shape ?? (o.id >= 1 && o.id <= SAMPLE_REGIONS.length ? { kind: 'region', id: SAMPLE_REGIONS[o.id - 1] } : null);

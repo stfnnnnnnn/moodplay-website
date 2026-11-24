@@ -26,9 +26,13 @@
   @media (hover:none){& .xp{opacity:1}}
   & .ochip{position:absolute;left:14px;top:14px;z-index:2}
 
-  & .big{position:absolute;inset:0;display:flex;flex-direction:column;padding:6px;border-radius:20px;background:#fff;box-shadow:0 0 0 3px var(--pink);opacity:0;visibility:hidden;transform:scale(.96);transition:opacity .22s var(--ease),transform .22s var(--ease),visibility 0s linear .22s}
-  & .boardwrap.open .big{opacity:1;visibility:visible;transform:none;transition-delay:0s}
-  & .boardwrap.open .board{opacity:0;pointer-events:none}
+  /* the larger preview grows out of its tile (clip-path from the tile's box, 280ms) and closes back into it
+     (220ms); the board fades under it. Interruptible: these are transitions. */
+  & .big{position:absolute;inset:0;display:flex;flex-direction:column;padding:6px;border-radius:20px;background:#fff;box-shadow:0 0 0 3px var(--pink);opacity:0;visibility:hidden;transform:scale(.98);clip-path:var(--clip,inset(25% round 21px));
+    transition:clip-path .22s var(--ease),transform .22s var(--ease),opacity .14s var(--ease) .08s,visibility 0s linear .22s}
+  & .boardwrap.open .big{opacity:1;visibility:visible;transform:none;clip-path:inset(-3px round 23px);
+    transition:clip-path .28s var(--ease),transform .28s var(--ease),opacity .12s var(--ease),visibility 0s}
+  & .boardwrap.open .board{opacity:0;pointer-events:none;transition-delay:.06s}
   & .big .ochip{left:18px;top:18px}
   & .big .cap{height:52px;padding:0 4px 0 12px}
   & .big .cap h3{font-size:18px}

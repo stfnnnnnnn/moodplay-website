@@ -188,8 +188,13 @@ export function Tour({ screen }: { screen: Screen }) {
     setView(null);
     dispatch({ type: 'tour', step: null });
     setUrlStep(null);
-    // hand focus back to where the tour can be restarted
-    requestAnimationFrame(() => document.querySelector<HTMLElement>('.v5 .tut')?.focus({ preventScroll: true }));
+    // hand focus back to where the tour can be restarted (Tutorial on Home / Projects / a project page); the step
+    // pages have no Tutorial button, so there it goes to the page heading
+    requestAnimationFrame(() => {
+      const t = document.querySelector<HTMLElement>('.v5 .tut') ?? document.querySelector<HTMLElement>('.v5 main h1, .v5 main h2');
+      if (t && !t.matches('a,button') && !t.hasAttribute('tabindex')) t.setAttribute('tabindex', '-1');
+      t?.focus({ preventScroll: true });
+    });
   }, [dispatch, spot]);
 
   const goStep = useCallback((n: number) => {

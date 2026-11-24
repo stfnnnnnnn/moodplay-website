@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import type { Project } from '../store';
 import { Scene } from '../scene';
 import { CROP, MOOD_DOT, MOOD_LABEL, mid, plural, realMood, short, shownMood } from '../format';
@@ -69,7 +69,7 @@ export function MoreMenu({ items, label, className = 'menu-btn', icon }: { items
 export function ProjectCard({ p, onOpen, menu, tourId }: { p: Project; onOpen: () => void; menu: MenuItem[]; tourId?: string }) {
   return (
     <article className="pc" data-id={p.id} data-tour={tourId}>
-      <div className="th" style={{ viewTransitionName: 'pthumb-' + p.id } as CSSProperties}>
+      <div className="th" data-thumb={p.id}>
         <Scene variant="gray" objects={p.objects} mood={shownMood(p)} viewBox={CROP} />
         <span className={'badge ' + (p.finished ? 'fin' : 'wip')}>{p.finished ? 'Finished' : 'In progress'}</span>
         {p.renders.length > 0 && <span className="chip runs-n">{plural(p.renders.length, 'render', 'renders')}</span>}

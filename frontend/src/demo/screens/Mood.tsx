@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import './steps.css';
 import './mood.css';
 import { TopBar } from '../chrome/TopBar';
@@ -42,6 +42,7 @@ export default function Mood() {
   const [skip, setSkip] = useState(false);
   const [big, setBig] = useState(false);
   const [origin, setOrigin] = useState('50% 50%');
+  const [clip, setClip] = useState('inset(25% round 21px)');
   const [at, setAt] = useState(48); // the filmstrip frame shown in the header
   const tiles = useRef<(HTMLDivElement | null)[]>([]);
   const wrap = useRef<HTMLDivElement>(null);
@@ -57,14 +58,21 @@ export default function Mood() {
     setSel(n); setSkip(false); dispatch({ type: 'setMood', mood: MOODS[n].key });
     if (focus && !big) tiles.current[n]?.focus();
   };
+  // the larger preview grows out of its tile and closes back into the selected one: its clip-path starts (and
+  // ends) on the tile's box, with the transform origin on the tile's centre (task B1)
+  const fromTile = (i: number) => {
+    const r = tiles.current[i]?.getBoundingClientRect(), w = wrap.current?.getBoundingClientRect();
+    if (!r || !w) return;
+    setOrigin(`${((r.left + r.width / 2 - w.left) / w.width) * 100}% ${((r.top + r.height / 2 - w.top) / w.height) * 100}%`);
+    setClip(`inset(${r.top - w.top - 3}px ${w.right - r.right - 3}px ${w.bottom - r.bottom - 3}px ${r.left - w.left - 3}px round 21px)`); // + the 3px ring
+  };
   const openBig = (i: number) => {
     choose(i);
-    const r = tiles.current[i]?.getBoundingClientRect(), w = wrap.current?.getBoundingClientRect();
-    if (r && w) setOrigin(`${((r.left + r.width / 2 - w.left) / w.width) * 100}% ${((r.top + r.height / 2 - w.top) / w.height) * 100}%`);
+    fromTile(i);
     setBig(true);
     requestAnimationFrame(() => closeBtn.current?.focus());
   };
-  const closeBig = () => { setBig(false); requestAnimationFrame(() => tiles.current[sel]?.focus()); };
+  const closeBig = () => { fromTile(sel); setBig(false); requestAnimationFrame(() => tiles.current[sel]?.focus()); };
   const toggleSkip = () => { const s = !skip; setSkip(s); if (big) closeBig(); if (!s) dispatch({ type: 'setMood', mood: m.key }); };
   const render = () => {
     dispatch({ type: 'setMood', mood: skip ? 'none' : m.key });
@@ -122,7 +130,7 @@ export default function Mood() {
                 </div>
               ))}
             </div>
-            <div className="big" role="region" aria-label="Larger preview" inert={!big} style={{ transformOrigin: origin }}>
+            <div className="big" role="region" aria-label="Larger preview" inert={!big} style={{ transformOrigin: origin, '--clip': clip } as CSSProperties}>
               <div className="tview">
                 <span className="chip ochip" aria-hidden="true">Original</span>
                 <div className="mframe">

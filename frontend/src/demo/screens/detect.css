@@ -1,38 +1,91 @@
 /* Detect (docs/design/studio-mockups/v5-detect.html). Scoped under .v5 .sp-detect. */
+@keyframes v5-det-sweep{from{transform:translateX(-100%)}to{transform:none}}
+@keyframes v5-det-reveal{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0)}}
+@keyframes v5-det-in{from{opacity:0}}
+@keyframes v5-det-close{from{opacity:1}to{opacity:0}}
 .v5 .sp-detect{
   --pw:372px;--lw:128px;
   @media (max-width:1360px){--pw:348px;--lw:112px}
 
   /* viewer */
-  & .dviewer{flex:1;min-height:0;container-type:size;display:grid;place-items:center}
-  & .dframe{position:relative;width:min(100cqw,233.333cqh);aspect-ratio:2100/900;cursor:crosshair}
-  & .overlay{position:absolute;inset:0}
-  & .obox{position:absolute;border-radius:10px;border:2px dashed rgba(255,255,255,.92);box-shadow:0 0 0 1px rgba(14,27,51,.35),inset 0 0 0 1px rgba(14,27,51,.25);background:transparent;padding:0;cursor:pointer;transition:border-color .15s,background-color .15s,opacity .2s var(--ease)}
-  @media (hover:hover) and (pointer:fine){& .obox:hover{border-color:#8FB0F2;border-style:solid}}
-  & .obox.sel{border:2.5px solid var(--pink);background:rgba(200,50,107,.06);box-shadow:0 0 0 2px #fff,inset 0 0 0 1.5px #fff}
-  & .obox.gone{opacity:0;pointer-events:none}
+  & .dviewer{flex:1;min-height:0;container-type:size;display:grid;place-items:center;padding-top:56px}
+  /* a tall viewer (portrait tablets) is capped at the frame's own height plus the tools band, so band and frame sit
+     together with the lanes right below, instead of floating in dark space (cqw = the stage's width) */
+  & .sp-stage{container-type:inline-size}
+  @media (min-width:900px){& .dviewer{max-height:calc(100cqw * 900 / 2100 + 56px)}}
+  @media (pointer:coarse) and (min-width:900px){& .dviewer{max-height:calc(100cqw * 900 / 2100 + 62px)}}
+  & .dframe{position:relative;width:min(100cqw,233.333cqh);aspect-ratio:2100/900;container-type:inline-size;cursor:crosshair;touch-action:manipulation;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+  & .dframe.over{cursor:pointer}
+  /* Rectangle and Free shape draw with the pointer: no page scroll or zoom while a finger draws */
+  & .dframe.drawing{touch-action:none;cursor:crosshair}
+
+  /* outlines: each object's exact shape (sceneRegions.ts), drawn in scene units, strokes in screen pixels */
+  & .oshapes{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+  & .oshapes path, & .oshapes polygon, & .oshapes polyline, & .oshapes line, & .oshapes rect{vector-effect:non-scaling-stroke;stroke-linejoin:round;stroke-linecap:round}
+  & .oshape{transition:opacity .2s var(--ease)}
+  & .oshape.gone{opacity:0}
+  & .oshape.fresh{animation:v5-det-in .22s var(--ease-out) both}
+  & .oshape .tint{fill:transparent;transition:fill .15s}
+  & .oshape .under{fill:none;stroke:rgba(14,27,51,.45);stroke-width:4}
+  & .oshape .edge{fill:none;stroke:rgba(255,255,255,.92);stroke-width:2;stroke-dasharray:7 5;transition:stroke .15s}
+  & .oshape.hov .edge{stroke:#8FB0F2;stroke-dasharray:none}
+  & .oshape.sel .tint{fill:rgba(200,50,107,.10)}
+  & .oshape.sel .under{stroke:#fff;stroke-width:6}
+  & .oshape.sel .edge{stroke:var(--pink);stroke-width:3;stroke-dasharray:none}
+  & .oshape .miss path{fill:url(#dhatch);stroke:var(--pink);stroke-width:2;stroke-dasharray:6 5}
+  /* the unmarked thing a click would add: its edges, shown before the click */
+  & .cand path{fill:rgba(35,80,184,.16);stroke:#fff;stroke-width:2;stroke-dasharray:4 4}
+  /* a shape being drawn */
+  & .draft{fill:none;stroke:var(--blue);stroke-width:2.5}
+  & .draft.live{stroke-dasharray:5 5;stroke-width:2}
+  & rect.draft.box{fill:rgba(35,80,184,.14);stroke:#fff;stroke-width:2;stroke-dasharray:6 4}
+  & polygon.closing{fill:rgba(35,80,184,.22);stroke:var(--blue);stroke-width:2.5;animation:v5-det-close .22s var(--ease-out) both}
+  & .ring{position:absolute;width:28px;height:28px;margin:-14px 0 0 -14px;border-radius:50%;border:2px solid var(--blue);background:rgba(255,255,255,.55);box-shadow:0 0 0 2px #fff;pointer-events:none;z-index:3;transition:transform .15s var(--ease-out),background-color .15s}
+  & .ring::after{content:"";position:absolute;inset:8px;border-radius:50%;background:var(--blue)}
+  & .ring.ready{transform:scale(1.12);background:rgba(228,236,250,.9)}
+  @media (pointer:coarse){& .ring{width:44px;height:44px;margin:-22px 0 0 -22px} & .ring::after{inset:15px}}
+  /* add by name: a scan sweeps the frame and each match's outline appears as it passes */
+  & .oshapes.scanning{animation:v5-det-reveal var(--scan,1.6s) linear both}
+  & .sweepbox{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:2}
+  & .sweep{position:absolute;inset:0;border-right:2px solid var(--blue);background:linear-gradient(90deg,transparent 82%,rgba(35,80,184,.2));animation:v5-det-sweep var(--scan,1.6s) linear both}
+
+  & .overlay{position:absolute;inset:0;pointer-events:none}
+  /* each object's number badge and keyboard stop (pointer clicks go to the frame, which hit-tests the exact shape) */
+  & .obox{position:absolute;border-radius:10px;border:0;background:transparent;padding:0;pointer-events:none;transition:opacity .2s var(--ease)}
+  & .obox.gone{opacity:0}
   & .obox .obj{position:absolute;left:-12px;top:-12px;box-shadow:0 0 0 2px #fff}
   & .obox.sel .obj{box-shadow:0 0 0 3px #fff,0 0 0 5px var(--pink)}
+  /* ids past 99 (many areas added and removed) widen the badge into a pill instead of squeezing the digits */
+  & .obj{width:auto;min-width:24px;padding:0 4px;border-radius:999px;font-variant-numeric:tabular-nums}
   & .obox .tag{position:absolute;left:16px;top:-11px;white-space:nowrap;background:#fff;color:var(--ink);font:700 11.5px/1.55 "DM Sans",sans-serif;padding:2px 8px;border-radius:999px;box-shadow:0 2px 8px rgba(14,27,51,.25)}
-  & .obox.partial{border-bottom-style:dotted}
-  & .obox.partial::after{content:"";position:absolute;left:-2px;right:-2px;top:100%;height:var(--miss,0);border:2px dashed var(--pink);border-top:0;border-radius:0 0 10px 10px;background:repeating-linear-gradient(-45deg,rgba(200,50,107,.28) 0 3px,transparent 3px 8px)}
+  & .obox .tag.l{left:auto;right:calc(100% + 16px)}
   & .ddot{position:absolute;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;display:grid;place-items:center;color:#fff;font:700 15px/1 "DM Sans",sans-serif;box-shadow:0 0 0 2px #fff;pointer-events:none;z-index:5;animation:v5-sp-dot 1.8s var(--ease) forwards}
   & .ddot.add{background:var(--blue)} & .ddot.sub{background:var(--ink)}
 
-  & .tools{position:absolute;left:14px;top:14px;display:flex;gap:2px;padding:4px;border-radius:999px;background:rgba(14,27,51,.78);backdrop-filter:blur(8px);transition:opacity .12s var(--ease);z-index:4;cursor:default}
+  /* tools, shape choice and hint: solid fills (no backdrop blur; they sit on the dark viewer or a still frame, and the blur cost raster time on first paint) */
+  & .tools{position:absolute;left:0;top:-52px;display:flex;gap:2px;padding:4px;border-radius:999px;background:rgba(14,27,51,.86);transition:opacity .12s var(--ease);z-index:4;cursor:default}
   & .tools button{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 12px;border-radius:999px;border:0;background:transparent;color:#DCE3EE;font:600 13px "DM Sans",sans-serif;cursor:pointer;transition:background-color .15s,color .15s,transform .1s}
   @media (hover:hover) and (pointer:fine){& .tools button:not(:disabled):hover{background:rgba(255,255,255,.12);color:#fff}}
   & .tools button:active:not(:disabled){transform:scale(.97)}
   & .tools button[aria-pressed=true]{background:#fff;color:var(--ink)}
   & .tools button:disabled{opacity:.45;cursor:not-allowed}
   & .tools .k{font-size:15px;line-height:1;font-weight:700}
-  & .vhint{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);max-width:calc(100% - 28px);padding:8px 14px;border-radius:999px;background:rgba(14,27,51,.78);backdrop-filter:blur(8px);color:#fff;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:opacity .12s var(--ease);pointer-events:none;z-index:4}
+  /* + Add area's shape choice: a radio group under the tools */
+  & .shapes{position:absolute;right:0;top:-52px;display:flex;gap:2px;padding:4px;border-radius:999px;background:rgba(14,27,51,.86);z-index:4;cursor:default;animation:v5-sp-arrive .18s var(--ease-out) both;transition:opacity .12s var(--ease)}
+  & .shapes button{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0 11px;border-radius:999px;border:0;background:transparent;color:#DCE3EE;font:600 12.5px "DM Sans",sans-serif;cursor:pointer;transition:background-color .15s,color .15s,transform .15s var(--ease-out)}
+  @media (hover:hover) and (pointer:fine){& .shapes button:hover{background:rgba(255,255,255,.12);color:#fff}}
+  & .shapes button:active{transform:scale(.97)}
+  & .shapes button[aria-checked=true]{background:var(--blue);color:#fff}
+  /* tools left, shape choice right, both above the frame: on a narrower viewer the shape names go first, then the tool names */
+  @container (max-width:720px){& .shapes .tt{display:none} & .shapes button{min-width:40px;justify-content:center}}
+  @container (max-width:520px){& .tools .tt{display:none} & .tools button{min-width:40px;justify-content:center}}
+  & .vhint{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);max-width:calc(100% - 28px);padding:8px 14px;border-radius:999px;background:rgba(14,27,51,.86);color:#fff;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:opacity .12s var(--ease);pointer-events:none;z-index:4}
 
   & .scanline{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .2s var(--ease);border-radius:2px;box-shadow:inset 0 0 0 3px var(--pink)}
   & .runtag{position:absolute;right:14px;top:14px;background:var(--pink);color:#fff;opacity:0;transition:opacity .2s var(--ease);font-variant-numeric:tabular-nums}
   &[data-state=running]{
     & .scanline, & .runtag{opacity:1}
-    & .tools, & .vhint, & .obox .tag{opacity:0;pointer-events:none}
+    & .tools, & .shapes, & .vhint, & .obox .tag{opacity:0;pointer-events:none}
     & .dframe{cursor:progress}
     & .pbar{opacity:1}
   }
@@ -45,7 +98,7 @@
   & .tl-head .muted{color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
   & .rowlbl{font-size:12.5px;font-weight:600;color:var(--ink-2);display:flex;align-items:center;gap:8px;min-width:0}
   & .rowlbl .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  & .rowlbl .obj{width:20px;height:20px;font-size:11px}
+  & .rowlbl .obj{min-width:20px;height:20px;font-size:11px;padding:0 3px}
   & .lane-row.sel .rowlbl{color:var(--ink)}
   & .lane-row.sel .rowlbl .obj{box-shadow:0 0 0 2px #fff,0 0 0 4px var(--pink)}
   & .dstrip{position:relative;height:50px;border-radius:10px;background:var(--viewer);padding:3px;display:flex;gap:2px;overflow:hidden;cursor:pointer;touch-action:none}
@@ -56,6 +109,7 @@
   & .lanes{grid-column:1/-1;display:grid;grid-template-columns:var(--lw) minmax(0,1fr);column-gap:12px;row-gap:2px;max-height:132px;overflow:auto;margin:6px 0 0 -4px;padding-left:4px;overscroll-behavior:contain}
   & .lane-row{display:contents}
   & .track{position:relative;height:20px}
+  & .track.filling{animation:v5-det-reveal var(--scan,1.6s) linear both}
   & .track::before{content:"";position:absolute;left:0;right:0;top:9px;height:2px;border-radius:2px;background:var(--line-2)}
   & .seg-f{position:absolute;top:6px;height:8px;border-radius:4px;background:var(--blue);pointer-events:none}
   & .lane-row.sel .seg-f{background:var(--blue-deep);top:5px;height:10px}
@@ -89,6 +143,8 @@
 
   & .olist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
   & .orow{display:grid;grid-template-columns:24px 40px minmax(0,1fr) auto;gap:10px;align-items:center;padding:6px 8px 6px 10px;border-radius:14px;cursor:pointer;transition:background-color .15s,box-shadow .15s}
+  /* rows below the fold (phones, long lists) skip layout and paint until scrolled near: their crop thumbnails are full scene SVGs */
+  & .orow{content-visibility:auto;contain-intrinsic-size:auto 52px}
   @media (hover:hover) and (pointer:fine){& .orow:hover{background:var(--panel-2)}}
   & .orow.sel{background:var(--pink-soft);box-shadow:inset 0 0 0 1.5px rgba(200,50,107,.35)}
   & .orow.sel .obj{box-shadow:0 0 0 3px var(--pink-soft),0 0 0 5px var(--pink)}
@@ -106,6 +162,7 @@
   & .addname{display:flex;flex-direction:column;gap:6px;padding-top:14px;border-top:1px solid var(--line-2)}
   & .addname label{font-size:13.5px;font-weight:600}
   & .addrow{display:flex;gap:8px}
+  & .addrow .btn[aria-disabled=true]{opacity:.6;cursor:progress}
   & .inp{flex:1;min-width:0;height:40px;padding:0 12px;border-radius:var(--r-ctl);border:1.5px solid var(--line);background:#fff;color:var(--ink);font:500 14px "DM Sans",sans-serif;transition:border-color .15s}
   & .inp::placeholder{color:var(--ink-3)}
   & .inp:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-soft)}
@@ -126,7 +183,7 @@
   & .dsteps li.now .ic::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--pink)}
   & .soFar{display:flex;flex-wrap:wrap;gap:6px}
   & .soFar .chip{background:var(--panel-2);color:var(--ink);font-weight:600;animation:v5-sp-rise .2s var(--ease) both}
-  & .soFar .chip .obj{width:18px;height:18px;font-size:10px}
+  & .soFar .chip .obj{min-width:18px;height:18px;font-size:10px;padding:0 3px}
 
   @media (max-width:899px){
     & .dviewer{flex:none;height:clamp(200px,44vw,420px)}
@@ -141,7 +198,12 @@
     & .tools{left:6px;top:-52px;background:rgba(255,255,255,.08)}
     & .tools button{min-height:44px;min-width:44px;justify-content:center;padding:0 12px}
     & .tools .tt{display:none}
+    & .shapes{right:6px;top:-52px;background:rgba(255,255,255,.08)}
+    & .shapes button{min-height:44px;min-width:44px;justify-content:center;padding:0 12px}
+    & .shapes .tt{display:none}
     & .vhint{display:none}
+    /* drawing on a small frame needs its one line of help: over the frame's foot, smaller */
+    & .vhint.drawhint{display:block;bottom:6px;padding:5px 10px;border-radius:10px;font-size:12px;line-height:1.35;white-space:normal;text-align:center;width:max-content;max-width:calc(100% - 12px)}
     & .runtag{right:8px;top:8px}
     & .lanes-key{display:none}
     & .tl-head .muted{display:none}
@@ -159,6 +221,12 @@
     & .addrow .btn{min-height:44px}
     & .oname{height:44px;font-size:16px}
   }
-  @media (pointer:coarse){& .oname{height:44px;font-size:16px} & .rm{width:44px;height:44px} & .inp{font-size:16px;height:44px}}
+  @media (pointer:coarse){& .gap::after{content:"";position:absolute;top:-8px;bottom:-8px;left:calc(50% - 23px);right:calc(50% - 23px)} & .oname{height:44px;font-size:16px} & .rm{width:44px;height:44px} & .inp{font-size:16px;height:44px}}
+  /* touch screens from 768px: 44px tool targets, so the band above the frame grows to fit them */
+  @media (pointer:coarse) and (min-width:768px){& .dviewer{padding-top:62px} & .tools, & .shapes{top:-58px} & .tools button, & .shapes button{min-height:44px;min-width:44px;justify-content:center}}
 }
-@media (prefers-reduced-motion:reduce){.v5 .sp-detect .ddot{animation:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){
+  .v5 .sp-detect .ddot{animation:none;opacity:1}
+  .v5 .sp-detect .oshape.fresh, .v5 .sp-detect .shapes, .v5 .sp-detect .track.filling{animation:none}
+  .v5 .sp-detect polygon.closing{animation:none;opacity:0}
+}

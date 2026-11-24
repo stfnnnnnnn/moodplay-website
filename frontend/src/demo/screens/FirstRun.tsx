@@ -21,6 +21,7 @@ export default function FirstRun() {
   const { markFirstRunSeen } = useDemoExtra();
   const [reduce] = useState(prefersReducedMotion);
   const [cur, setCur] = useState(0);
+  const [dir, setDir] = useState<'fwd' | 'back'>('fwd'); // which way the last slide change went (CSS mirrors the slide)
   const [phase, setPhase] = useState<Phase>(reduce ? 'done' : 'play');
   const [landed, setLanded] = useState(reduce);
 
@@ -40,6 +41,7 @@ export default function FirstRun() {
   const show = useCallback((i: number) => {
     i = Math.max(0, Math.min(SCREENS - 1, i));
     if (i === curRef.current) return;
+    setDir(i > curRef.current ? 'fwd' : 'back');
     curRef.current = i;
     setCur(i);
     // the heading takes focus once its screen is shown (it can still be hidden on the first frame, as with reduced
@@ -139,7 +141,7 @@ export default function FirstRun() {
   const scr = (i: number) => 'scr' + (i === cur ? ' on' : '') + (i < cur ? ' past' : '');
 
   return (
-    <div className={rootClass} data-s={cur}>
+    <div className={rootClass} data-s={cur} data-dir={dir}>
       {!reduce && (
         <div className={introClass} ref={introRef} role="presentation" title="Click to skip" onClick={() => fly(380)}>
           <div className="bg"><span className="light lb" /><span className="light lp" /></div>

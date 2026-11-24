@@ -1,4 +1,4 @@
-import { Fragment, useLayoutEffect, useRef } from 'react';
+import { Fragment, useEffect, useRef } from 'react';
 import { STEP_NAMES, useDemo, type Step } from '../store';
 import { STEP_SCREENS, demoHref, linkClick } from '../nav';
 
@@ -8,20 +8,32 @@ import { STEP_SCREENS, demoHref, linkClick } from '../nav';
  *  `nowNote` is screen-reader text after the current step, e.g. " (rendering)". */
 export function StepRail({ now, reached, lockPast, nowNote }: { now: Step; reached: Step; lockPast?: boolean; nowNote?: string }) {
   const { current } = useDemo();
-  // when the rail is wider than its slot (it scrolls sideways), keep the current step in view, centred
+  // when the rail is wider than its slot (it scrolls sideways), keep the current step in view, centred (clear of the
+  // 28px edge fades).
+  // Measured in a ResizeObserver callback, not in the commit: it runs after the browser's own layout and before
+  // paint (no forced layout while React commits, no visible jump), on first observe and whenever the rail resizes.
   const navRef = useRef<HTMLElement>(null);
-  useLayoutEffect(() => {
+  useEffect(() => {
     const nav = navRef.current;
-    if (!nav) return;
+    if (!nav || typeof ResizeObserver === 'undefined') return;
+    // which edge(s) hide more steps: the CSS fades those edges so no label ends in a hard cut
+    const edges = () => {
+      const l = nav.scrollLeft > 1, r = nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 1;
+      const v = (l ? 'l' : '') + (r ? 'r' : '');
+      if (v) nav.dataset.fade = v; else delete nav.dataset.fade;
+    };
     const fit = () => {
       const cur = nav.querySelector('[aria-current="step"]');
-      if (!cur || nav.scrollWidth <= nav.clientWidth + 1) return;
-      const n = nav.getBoundingClientRect(), c = cur.getBoundingClientRect();
-      if (c.left < n.left + 8 || c.right > n.right - 8) nav.scrollLeft += c.left + c.width / 2 - (n.left + n.width / 2);
+      if (cur && nav.scrollWidth > nav.clientWidth + 1) {
+        const n = nav.getBoundingClientRect(), c = cur.getBoundingClientRect();
+        if (c.left < n.left + 32 || c.right > n.right - 32) nav.scrollLeft += c.left + c.width / 2 - (n.left + n.width / 2);
+      }
+      edges();
     };
-    fit();
-    window.addEventListener('resize', fit);
-    return () => window.removeEventListener('resize', fit);
+    const ro = new ResizeObserver(fit);
+    ro.observe(nav);
+    nav.addEventListener('scroll', edges, { passive: true });
+    return () => { ro.disconnect(); nav.removeEventListener('scroll', edges); };
   }, [now]);
   return (
     <nav aria-label="Steps" ref={navRef}>

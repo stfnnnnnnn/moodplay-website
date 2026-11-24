@@ -1,10 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type FocusEvent, type PointerEvent as RPointerEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type FocusEvent, type MouseEvent as RMouseEvent, type PointerEvent as RPointerEvent } from 'react';
 import './steps.css';
 import './colorize.css';
 import { TopBar } from '../chrome/TopBar';
 import { HoldButton } from '../chrome/HoldButton';
 import { Scene } from '../scene';
-import { isColor, useDemo, type SceneObject } from '../store';
+import { isColor, shapeOf, useDemo, type SceneObject } from '../store';
+import { hitObject } from '../regionHit';
+import { maskUrl, shapePath } from '../sceneRegions';
+import { FrontMasks } from '../parts/ShapeMasks';
 import { go } from '../nav';
 import { useHoldSpace } from '../parts/HoldSpace';
 import { ColorPicker } from '../parts/ColorPicker';
@@ -15,7 +18,10 @@ import { FrameThumbs } from '../parts/FrameThumbs';
 
 /* Colorize (v5-colorize.html): select an object on the frame or in the list (pink ring in both), then
    Keep original (icon-only first swatch), one of the recent colours, or Custom color (picker, applies live).
-   Hold Space / press and hold the eye for the black-and-white original. */
+   Hold Space / press and hold the eye for the black-and-white original. A click on the frame selects the object
+   whose exact shape is under the pointer (smallest on top, people in front of buildings; regionHit.ts), and the
+   pink ring follows that shape. */
+const [CX, , CW, CH] = CROP.split(' ').map(Number); // the frame shows scene x CX..CX+CW, y 0..CH
 
 const NAMES: Record<string, string> = { '#C8326B': 'Raspberry', '#E39B2D': 'Amber', '#2F6FD6': 'Cobalt', '#2A9C9C': 'Teal', '#3E9B5C': 'Green', '#EADBC0': 'Cream', '#7A4E2D': 'Brown' };
 const DEFAULT_ROW = ['#C8326B', '#E39B2D', '#2F6FD6', '#2A9C9C', '#3E9B5C', '#EADBC0', '#7A4E2D'];
@@ -48,8 +54,10 @@ export default function Colorize() {
   const cbtn = useRef<HTMLButtonElement>(null);
   const tip = useSwatchTip();
   const [at, setAt] = useState(48); // the filmstrip frame shown in the header (the viewer itself is one still)
+  const [hov, setHov] = useState<number | null>(null); // the object under the mouse (pen too), outlined in blue
 
   const shown = useMemo(() => objects.map(o => (live && o.id === sel ? { ...o, color: live } : o)), [objects, live, sel]);
+  const shaped = useMemo(() => shown.flatMap(o => { const shape = shapeOf(o); return shape ? [{ ...o, shape }] : []; }), [shown]);
   const cur = shown.find(o => o.id === sel) ?? shown[0];
   const c = cur && isColor(cur.color) ? cur.color.toUpperCase() : null;
   const done = shown.filter(o => isColor(o.color)).length;
@@ -70,10 +78,37 @@ export default function Colorize() {
   const toMood = () => { if (current && current.step < 4) dispatch({ type: 'setStep', step: 4 }); go('mood'); };
 
   const inRow = !!c && row.includes(c);
+  const X = (x: number) => ((x - CX) / CW) * 100, Y = (y: number) => (y / CH) * 100;
+  // the hit boxes stay for the tour (its target and act) and for programmatic clicks; real clicks are hit-tested by shape
   const hitStyle = (o: SceneObject): CSSProperties => {
     const [x0, y0raw, x1, y1] = o.box, y0 = o.id === 5 ? Math.max(y0raw, 424) : y0raw; // Person 3: the head, as in the mockup
-    return { left: `calc(${(x0 - 310) / 16.8}% - 10px)`, width: `calc(${(x1 - x0) / 16.8}% + 20px)`, top: `calc(${y0 / 9}% - 10px)`, height: `calc(${(y1 - y0) / 9}% + 20px)` };
+    return { left: `calc(${X(x0)}% - 10px)`, width: `calc(${X(x1) - X(x0)}% + 20px)`, top: `calc(${Y(y0)}% - 10px)`, height: `calc(${Y(y1) - Y(y0)}% + 20px)` };
   };
+  // each number badge at its object's top-left corner (the car's sits over its body, as in the mockup), kept inside the frame
+  const badgeStyle = (o: SceneObject): CSSProperties => {
+    const [x0, y0raw, x1] = o.box, y0 = o.id === 5 ? Math.max(y0raw, 424) : y0raw, x = o.id === 3 ? x0 + (x1 - x0) * .154 : x0;
+    return { left: `clamp(2px, calc(${X(x)}% - 10px), calc(100% - 26px))`, top: `clamp(2px, calc(${Y(y0)}% - 10px), calc(100% - 26px))` };
+  };
+  const at2 = (e: { clientX: number; clientY: number; currentTarget: Element }) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    return { x: CX + ((e.clientX - r.left) / r.width) * CW, y: ((e.clientY - r.top) / r.height) * CH };
+  };
+  const hitAt = (e: { clientX: number; clientY: number; currentTarget: Element }) => {
+    const p = at2(e);
+    return hitObject(shaped, p.x, p.y);
+  };
+  const onFrameClick = (e: RMouseEvent<HTMLDivElement>) => {
+    if (e.detail === 0) return; // a programmatic click (the tour's Next) already selected its object
+    const o = hitAt(e);
+    if (o) select(o.id);
+  };
+  const onFrameMove = (e: RPointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === 'touch') return;
+    const id = hitAt(e)?.id ?? null;
+    if (id !== hov) setHov(id);
+  };
+  const ring = cur ? shaped.find(o => o.id === cur.id) : null, over = hov != null && hov !== sel ? shaped.find(o => o.id === hov) : null;
+  const maskOf = (o: { shape: SceneObject['shape'] }) => (o.shape.kind === 'region' ? maskUrl('cm', o.shape.id) : undefined);
 
   if (!cur) {
     return <EmptyStep step={3} reached={reachedFor(current, 3)} title="No objects to color"
@@ -89,13 +124,19 @@ export default function Colorize() {
             <div className="vin"><div className="cframe" data-tour="tut_frame">
               <div className="lay" role="img" aria-label={`Frame ${at}: ${done} of ${shown.length} objects have a color`}><Scene variant="gray" objects={shown} viewBox={CROP} videoSrc={current?.videoSrc} /></div>
               <div className="lay orig" aria-hidden="true"><Scene variant="gray" viewBox={CROP} /></div>
-              <div className="hits" aria-hidden="true">
+              <svg className="csel" viewBox={CROP} preserveAspectRatio="none" aria-hidden="true" focusable="false">
+                <defs><FrontMasks prefix="cm" /></defs>
+                {over ? <g className="hov" mask={maskOf(over)}><path className="under" d={shapePath(over.shape)} /><path className="edge" d={shapePath(over.shape)} /></g> : null}
+                {ring ? <g key={ring.id} className="ring" mask={maskOf(ring)}><path className="under" d={shapePath(ring.shape)} /><path className="edge" d={shapePath(ring.shape)} /></g> : null}
+              </svg>
+              <div className={'hits' + (hov != null ? ' over' : '')} aria-hidden="true" onClick={onFrameClick} onPointerMove={onFrameMove} onPointerLeave={() => setHov(null)}>
                 {shown.map(o => (
                   <button key={o.id} className={'hit' + (o.id === sel ? ' sel' : '')} tabIndex={-1} data-o={o.id} style={hitStyle(o)}
-                    data-tour={o.id === 5 ? 'tut_select_object' : undefined} onClick={() => select(o.id)}>
-                    <span className="obj" style={o.id === 3 ? { left: 'calc(15.4% - 10px)' } : undefined}>{o.id}</span>
-                  </button>
+                    data-tour={o.id === 5 ? 'tut_select_object' : undefined} onClick={e => { if (e.detail === 0) select(o.id); }} />
                 ))}
+              </div>
+              <div className="cbadges" aria-hidden="true">
+                {shown.map(o => <span key={o.id} className={'obj cbadge' + (o.id === sel ? ' sel' : '')} style={badgeStyle(o)}>{o.id}</span>)}
               </div>
             </div></div>
           </div>

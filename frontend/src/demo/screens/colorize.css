@@ -9,13 +9,21 @@
   & .pbody{flex:1;min-height:0;overflow:auto;margin:16px -6px 0;padding:0 6px;overscroll-behavior:contain}
 }
 .v5 .sp-colorize{
+  /* selection by exact shape: a click is hit-tested against the objects' shapes, and the pink ring (blue on hover)
+     is drawn from the shape; the hit boxes are invisible (the tour's target), the badges sit in their own layer */
   & .hits{position:absolute;inset:0;z-index:2}
-  & .hit{position:absolute;padding:0;border:0;background:transparent;border-radius:18px;cursor:pointer;transition:box-shadow .18s var(--ease)}
-  & .hit .obj{position:absolute;left:-10px;top:-10px;box-shadow:0 0 0 2px rgba(255,255,255,.9);transition:box-shadow .18s var(--ease)}
-  @media (hover:hover) and (pointer:fine){& .hit:not(.sel):hover{box-shadow:0 0 0 2px rgba(255,255,255,.85),0 0 0 4px var(--blue)}}
-  & .hit.sel{box-shadow:0 0 0 2px #fff,0 0 0 5px var(--pink)}
-  & .hit.sel .obj{box-shadow:0 0 0 3px #fff,0 0 0 5px var(--pink)}
-  &.holding .hit{box-shadow:none}
+  & .hits.over{cursor:pointer}
+  & .hit{position:absolute;padding:0;border:0;background:transparent;border-radius:18px;cursor:inherit}
+  & .csel{position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none;overflow:visible;transition:opacity .15s var(--ease)}
+  & .csel path{fill:none;vector-effect:non-scaling-stroke;stroke-linejoin:round;stroke-linecap:round}
+  & .csel .under{stroke:#fff;stroke-width:6}
+  & .csel .edge{stroke:var(--pink);stroke-width:3}
+  & .csel .hov .under{stroke:rgba(255,255,255,.85);stroke-width:5}
+  & .csel .hov .edge{stroke:var(--blue);stroke-width:2.5}
+  &.holding .csel{opacity:0}
+  & .cbadges{position:absolute;inset:0;z-index:3;pointer-events:none}
+  & .cbadge{position:absolute;box-shadow:0 0 0 2px rgba(255,255,255,.9);transition:box-shadow .18s var(--ease)}
+  & .cbadge.sel{box-shadow:0 0 0 3px #fff,0 0 0 5px var(--pink)}
   & .cframe .lay svg .scene{transition:none}
 
   & .olist{list-style:none;margin:0 0 18px;padding:0;display:flex;flex-direction:column;gap:2px}

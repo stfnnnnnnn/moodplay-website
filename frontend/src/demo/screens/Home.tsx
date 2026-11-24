@@ -32,7 +32,7 @@ function ResumeFrame({ p }: { p: Project }) {
   const alt = `${p.name}, current frame: ` + (n === 0 ? 'nothing is colored yet' :
     p.objects.filter(o => isColor(o.color)).map(o => o.label).join(' and ') + (n === p.objects.length ? ' are colored' : ' are colored; the rest is still black and white'));
   return (
-    <div className="frame" style={{ viewTransitionName: 'pthumb-' + p.id } as CSSProperties}>
+    <div className="frame" data-thumb={p.id}>
       <div className="lay" role="img" aria-label={alt}><Scene variant="gray" objects={p.objects} mood={p.finished ? p.mood : null} /></div>
       {p.objects.map(o => {
         const c = isColor(o.color) ? o.color : null;
@@ -84,7 +84,7 @@ function Tile({ p }: { p: Project }) {
   const mood = realMood(p.mood);
   return (
     <a className="tile" href={demoHref('project', { id: p.id })} onClick={linkClick('project', { id: p.id })} data-k={p.finished ? 'fin' : 'prog'}>
-      <div className="th" style={{ viewTransitionName: 'pthumb-' + p.id } as CSSProperties}>
+      <div className="th" data-thumb={p.id}>
         <Scene variant={p.finished ? 'color' : 'gray'} objects={p.objects} mood={p.finished ? mood : null} />
         <span className={'chip badge ' + (p.finished ? 'fin' : 'prog')}>{p.finished ? 'Finished' : 'In progress'}</span>
         {p.renders.length > 0 && <span className="chip runs">{plural(p.renders.length, 'render', 'renders')}</span>}

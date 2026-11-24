@@ -80,9 +80,48 @@
   & .tsearch input::placeholder{color:var(--ink-3)}
   & .tsearch input::-webkit-search-cancel-button{display:none}
   & .tsearch:focus-within{box-shadow:inset 0 0 0 1.5px var(--blue)}
-  & .topbar.step{display:grid;grid-template-columns:1fr auto 1fr;width:100%}
+  /* step bar: the sides are never squeezed below their content and share the rest equally, so the rail sits on the
+     page centre whenever it fits and moves only as far off it as the sides need; when even that is too narrow the
+     rail scrolls sideways (StepRail keeps the current step in view) */
+  & .topbar.step{display:grid;grid-template-columns:minmax(max-content,1fr) minmax(0,auto) minmax(max-content,1fr);width:100%}
+  & .topbar.step nav{min-width:0;display:flex;justify-content:safe center;overflow-x:auto;scrollbar-width:none;padding:6px 4px;overscroll-behavior-x:contain}
+  & .topbar.step nav::-webkit-scrollbar{display:none}
+  /* a rail wider than its slot scrolls: the side(s) with more steps beyond fade out, so no label ends in a hard cut */
+  & .topbar.step nav[data-fade=l]{-webkit-mask-image:linear-gradient(90deg,transparent,#000 28px);mask-image:linear-gradient(90deg,transparent,#000 28px)}
+  & .topbar.step nav[data-fade=r]{-webkit-mask-image:linear-gradient(270deg,transparent,#000 28px);mask-image:linear-gradient(270deg,transparent,#000 28px)}
+  & .topbar.step nav[data-fade=lr]{-webkit-mask-image:linear-gradient(90deg,transparent,#000 28px,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,transparent,#000 28px,#000 calc(100% - 28px),transparent)}
   & .tb-l, & .tb-r{display:flex;align-items:center;gap:14px;min-width:0}
   & .tb-r{justify-content:flex-end}
+  /* step pages: Home and Back as quiet 44px icon buttons after the wordmark (task B1, owner fix round 1). Their names
+     show as a small tooltip after 400ms of hover, or on keyboard focus. */
+  & .topbar.step .tb-l{gap:2px}
+  & .topbar.step .wmk{margin-right:14px}
+  & .tb-ico{position:relative;display:inline-grid;place-items:center;width:44px;height:44px;border-radius:999px;color:var(--ink-2);text-decoration:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;transition:background-color .15s,color .15s}
+  /* press feedback scales the icon only: scaling the link would make it the tooltip's containing block, so a showing
+     tooltip would jump while pressed */
+  & .tb-ico svg{transition:transform .15s var(--ease-out)}
+  & .tb-ico:active svg{transform:scale(.92)}
+  @media (hover:hover) and (pointer:fine){& .tb-ico:hover{color:var(--ink);background:rgba(14,27,51,.06)}}
+  & .tb-ico::after{content:attr(data-tip);position:absolute;left:50%;top:calc(100% + 6px);z-index:6;padding:5px 9px;border-radius:8px;background:var(--ink);color:#fff;font:600 12.5px/1.3 "DM Sans",sans-serif;white-space:nowrap;pointer-events:none;
+    max-width:min(260px,calc(100vw - 32px));overflow:hidden;text-overflow:ellipsis;
+    opacity:0;transform:translate(-50%,-3px);transition:opacity .15s var(--ease),transform .15s var(--ease)}
+  @media (hover:hover) and (pointer:fine){& .tb-ico:hover::after{opacity:1;transform:translate(-50%,0);transition-delay:.4s}}
+  & .tb-ico:focus-visible::after{opacity:1;transform:translate(-50%,0);transition-delay:.4s}
+  /* the first icon's tooltip starts at its left edge on a phone, so it never runs off-screen */
+  /* Escape hides a showing tooltip (WCAG 1.4.13; TopBar sets data-tipoff until the pointer or focus leaves) */
+  & .tb-ico[data-tipoff]::after{opacity:0;transition:none}
+  /* one tooltip at a time: while an icon has keyboard focus, the other icon's tooltip stays hidden (on a phone they would
+     hang from the same gutter and stack) */
+  & .tb-l:has(.tb-ico:focus-visible) .tb-ico:not(:focus-visible)::after{opacity:0;transition:none}
+  /* phones: the tooltip hangs from the left edge of the wordmark group (the page gutter), not from the icon, so even a long
+     "Back to <file name>" stays on screen; it is capped at the window width and ends in an ellipsis (the accessible
+     name keeps the full text) */
+  @media (max-width:767px){
+    & .topbar.step .tb-l{position:relative}
+    & .topbar.step .tb-ico{position:static}
+    & .tb-ico::after{left:0;transform:translate(0,-3px)}
+    & .tb-ico:hover::after, & .tb-ico:focus-visible::after{transform:none}
+  }
   & .hold{gap:8px;font-size:13.5px;padding:0 14px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
   & .hold[aria-pressed=true]{background:var(--blue-soft);color:var(--blue);box-shadow:inset 0 0 0 1px var(--blue)}
 
@@ -138,13 +177,8 @@
   }
 
   @media (max-width:1180px){& .tsearch{display:none} & .tactions .div{display:none}}
-  @media (max-width:1100px){
-    & .topbar.step{grid-template-columns:auto minmax(0,1fr) auto}
-    /* the rail scrolls sideways when it doesn't fit; StepRail keeps the current step in view */
-    & .topbar.step nav{min-width:0;display:flex;justify-content:safe center;overflow-x:auto;scrollbar-width:none;padding:6px 4px;overscroll-behavior-x:contain}
-    & .topbar.step nav::-webkit-scrollbar{display:none}
-  }
-  @media (max-width:900px){& .hold .hl{display:none}}
+  /* below 1024px the long Hold label would squeeze the rail (it needs 524px at most): the eye alone (aria-label keeps the words) */
+  @media (max-width:1023px){& .hold .hl{display:none}}
   @media (max-width:767px){
     --gutter:16px;
     /* smaller blooms so pink and blue stay in opposite corners and never overlap on a phone */
@@ -186,8 +220,74 @@
   .v5 *, .v5 *::before, .v5 *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;animation-delay:0s!important;transition-duration:.01ms!important;transition-delay:0s!important}
 }
 
-/* screen swaps: one crossfade (View Transitions API), shared thumbnails morph into the project hero */
-::view-transition-old(root),::view-transition-new(root){animation-duration:180ms;animation-timing-function:cubic-bezier(.2,.8,.2,1)}
-::view-transition-group(*){animation-duration:220ms;animation-timing-function:cubic-bezier(.23,1,.32,1)}
-::view-transition-image-pair(*){isolation:auto}
+/* ---------- screen changes (View Transitions API; task B1, ruling R18) ----------
+   DemoApp sets html[data-vt=fwd|back|rise] for the length of one transition (fwd/back = along the five steps,
+   rise = Home, Projects, a project page or the intro <-> anything). Only then do the parts below carry a
+   view-transition-name, so no page gets an extra stacking context outside a transition.
+   - Background (root): the same on every page, so its crossfade is invisible: the calm background stays put.
+   - Top bar: still between step pages (no crossfade, no flash); only the current-step pill slides along the rail.
+   - Video frame (Upload preview, Detect, Colorize, Mood board, Render, Results player): one shared element that
+     morphs in place from page to page.
+   - Page content + side panel: forward slides in from the right while the old page leaves to the left; back is
+     mirrored. The panel follows 40 ms behind. Rise: a short lift + fade. Distances scale with the window.
+   - Tour layer and toast: their own still layers, so the tour's scrim never blinks or slides.
+   Timing: 300 ms in (panel 40 ms + 280 ms), 200 ms out, cubic-bezier(.2,.8,.2,1); transform + opacity only.
+   No view transition runs under prefers-reduced-motion (DemoApp swaps at once). */
+:root[data-vt]{--vt-in:clamp(16px,2.8vw,40px);--vt-out:clamp(10px,1.7vw,24px);--vt-rise:clamp(12px,1.4vw,20px);--vt-s:1}
+:root[data-vt=back]{--vt-s:-1}
+:root[data-vt] .v5 .topbar{view-transition-name:mp-top}
+:root[data-vt] .v5 .rail .now a{view-transition-name:mp-pill}
+:root[data-vt] .v5 main{view-transition-name:mp-main}
+:root[data-vt] .v5 .sp > .sp-panel{view-transition-name:mp-panel}
+:root[data-vt] .v5 :is(.sp-upload[data-state=file] .uviewer,.sp-detect .dviewer,.sp-colorize .cviewer,.sp-mood .boardwrap,.sp-render .rstage,.sp-results .rcmp){view-transition-name:mp-frame}
+:root[data-vt] .v5 .tour-root{view-transition-name:mp-tour}
+:root[data-vt] .v5 > .toast{view-transition-name:mp-toast}
+/* mp-thumb: DemoApp names one project thumbnail (data-thumb) for one transition only, between Home / Projects and a
+   project page, so the opened card's thumbnail grows into the hero; every other thumbnail moves with its page */
+/* while a transition runs, the pages' own entrance keyframes finish at once (the transition is the entrance);
+   duration and delay are timing only, so the animation is not restarted when the attribute goes.
+   Invariant: each listed entrance (duration + delay) must be shorter than a transition (>= 320ms; today 220ms + 80ms),
+   or the rest of it would play when data-vt is cleared. */
+:root[data-vt] .v5 :is(.sp-stage,.sp-panel,.estep,.resume > *,.pgrid > .pc,.hframe,.d-rest){animation-duration:0s;animation-delay:0s}
+
+@keyframes v5-vt-in{from{opacity:0;transform:translateX(calc(var(--vt-in) * var(--vt-s)))}}
+@keyframes v5-vt-out{to{opacity:0;transform:translateX(calc(var(--vt-out) * var(--vt-s) * -1))}}
+@keyframes v5-vt-rise{from{opacity:0;transform:translateY(var(--vt-rise))}}
+@keyframes v5-vt-fade{to{opacity:0}}
+@keyframes v5-vt-show{from{opacity:0}}
+
+/* shared elements (pill, frame, project thumbnails, root): the browser's own crossfade + morph, at screen pace */
+::view-transition-group(*){animation-duration:300ms;animation-timing-function:cubic-bezier(.2,.8,.2,1)}
+::view-transition-old(*),::view-transition-new(*){animation-duration:300ms;animation-timing-function:cubic-bezier(.2,.8,.2,1)}
+
+/* still layers */
+::view-transition-group(mp-tour),::view-transition-group(mp-toast),::view-transition-new(mp-tour),::view-transition-new(mp-toast){animation:none}
+::view-transition-old(mp-tour),::view-transition-old(mp-toast){animation:none;opacity:0}
+:root[data-vt=fwd]::view-transition-group(mp-top),:root[data-vt=back]::view-transition-group(mp-top),
+:root[data-vt=fwd]::view-transition-new(mp-top),:root[data-vt=back]::view-transition-new(mp-top){animation:none}
+:root[data-vt=fwd]::view-transition-old(mp-top),:root[data-vt=back]::view-transition-old(mp-top){animation:none;opacity:0}
+/* hub <-> step: the two bars differ, so the old one leaves quickly before the new one comes in (no doubled labels) */
+:root[data-vt=rise]::view-transition-old(mp-top){animation:v5-vt-fade 120ms cubic-bezier(.2,.8,.2,1) both}
+:root[data-vt=rise]::view-transition-new(mp-top){animation:v5-vt-show 220ms cubic-bezier(.2,.8,.2,1) 80ms both}
+/* the shared frame: the old snapshot (e.g. Detect's tools band and hint) leaves quickly and the new one arrives a
+   little ahead of the morph, so the two sets of labels never show doubled; unpaired frames use the rules below */
+::view-transition-old(mp-frame){animation:v5-vt-fade 120ms cubic-bezier(.2,.8,.2,1) both}
+::view-transition-new(mp-frame){animation:v5-vt-show 160ms cubic-bezier(.2,.8,.2,1) both}
+/* a project thumbnail left without a partner (e.g. hidden by a search) fades with its page */
+::view-transition-old(mp-thumb):only-child{animation:v5-vt-fade 180ms cubic-bezier(.2,.8,.2,1) both}
+
+/* content: directional along the steps */
+:root[data-vt=fwd]::view-transition-old(mp-main),:root[data-vt=back]::view-transition-old(mp-main),
+:root[data-vt=fwd]::view-transition-old(mp-panel),:root[data-vt=back]::view-transition-old(mp-panel),
+:root[data-vt=fwd]::view-transition-old(mp-frame):only-child,:root[data-vt=back]::view-transition-old(mp-frame):only-child{animation:v5-vt-out 200ms cubic-bezier(.2,.8,.2,1) both}
+:root[data-vt=fwd]::view-transition-new(mp-main),:root[data-vt=back]::view-transition-new(mp-main),
+:root[data-vt=fwd]::view-transition-new(mp-frame):only-child,:root[data-vt=back]::view-transition-new(mp-frame):only-child{animation:v5-vt-in 300ms cubic-bezier(.2,.8,.2,1) both}
+:root[data-vt=fwd]::view-transition-new(mp-panel),:root[data-vt=back]::view-transition-new(mp-panel){animation:v5-vt-in 280ms cubic-bezier(.2,.8,.2,1) 40ms both}
+
+/* content: rise between the hub pages (Home, Projects, a project) and the rest */
+:root[data-vt=rise]::view-transition-old(mp-main),:root[data-vt=rise]::view-transition-old(mp-panel),
+:root[data-vt=rise]::view-transition-old(mp-frame):only-child{animation:v5-vt-fade 180ms cubic-bezier(.2,.8,.2,1) both}
+:root[data-vt=rise]::view-transition-new(mp-main),:root[data-vt=rise]::view-transition-new(mp-frame):only-child{animation:v5-vt-rise 300ms cubic-bezier(.2,.8,.2,1) both}
+:root[data-vt=rise]::view-transition-new(mp-panel){animation:v5-vt-rise 280ms cubic-bezier(.2,.8,.2,1) 40ms both}
+
 @media (prefers-reduced-motion:reduce){::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}}

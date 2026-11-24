@@ -3,7 +3,7 @@ import './projects.css';
 import { TopBar } from '../chrome/TopBar';
 import { IconQ, IconUp } from '../chrome/Icons';
 import { ProjectCard, type MenuItem } from '../chrome/ProjectCard';
-import { useDemo, useDemoExtra, type Project } from '../store';
+import { copyName, useDemo, useDemoExtra, type Project } from '../store';
 import { demoHref, go, linkClick } from '../nav';
 import { setPending, useDemoUi } from '../ui';
 import { MOOD_LABEL, mid, plural } from '../format';
@@ -35,7 +35,7 @@ export default function Projects() {
   };
   const menu = (p: Project): MenuItem[] => [
     { key: 'rename', label: 'Rename', onSelect: () => open(p, 'rename') },
-    { key: 'dup', label: 'Duplicate with another mood', onSelect: () => { duplicate(p.id); toast('Duplicated. Pick a new mood for ' + mid(p.name.replace(/(\.[^.]+)$/, ' (copy)$1'), 40) + '.'); } },
+    { key: 'dup', label: 'Duplicate with another mood', onSelect: () => { duplicate(p.id); toast('Duplicated. Pick a new mood for ' + mid(copyName(p.name), 40) + '.'); } },
     { key: 'delete', label: 'Delete project', danger: true, sep: true, onSelect: () => open(p, 'delete') },
   ];
   const counts: Record<Filter, number> = { all: n, wip: n - nf, fin: nf };
@@ -51,7 +51,7 @@ export default function Projects() {
     );
   } else if (!list.length) {
     const label = q ? `No projects match “${query.trim()}”` : filter === 'fin' ? 'No finished projects yet' : 'Nothing in progress';
-    const hint = q ? 'Check the spelling, or search for a mood like Sunday Blues.' : filter === 'fin' ? 'A project counts as finished once you download its video.' : 'Every project is finished. Upload a video to start another.';
+    const hint = q ? 'Check the spelling, or search for a mood like Sunday Blues.' : filter === 'fin' ? 'A project counts as finished once its video is rendered.' : 'Every project is finished. Upload a video to start another.';
     body = (
       <div className="empty">
         <span className="ico"><IconQ /></span><h2>{label}</h2><p>{hint}</p>

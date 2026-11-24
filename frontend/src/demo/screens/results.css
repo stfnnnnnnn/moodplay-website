@@ -1,0 +1,126 @@
+/* Results (docs/design/studio-mockups/v5-results.html). Scoped under .v5 .sp-results.
+   Demo-only names where the mockup's collide with landing.css or other screens: rs-seg (not seg), rs-pl / rs-pair /
+   rs-frame, rs-scrub / rs-strip / rs-track / rs-head, rs-play, rs-tc, rs-fr (.fr is the first run). */
+.v5 .sp-results{
+  --pw:340px;gap:24px;padding-top:0;
+
+  /* left: view header, the two players, the transport */
+  & .rs-work{gap:12px}
+  & .shead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  & .rs-seg{display:inline-flex;padding:4px;border-radius:999px;background:rgba(255,255,255,.8);box-shadow:inset 0 0 0 1px var(--line)}
+  & .rs-seg button{min-height:34px;padding:0 14px;border:0;border-radius:999px;background:transparent;color:var(--ink-2);font-weight:600;font-size:14px;cursor:pointer;white-space:nowrap;transition:background-color .18s var(--ease),color .18s var(--ease),transform .1s var(--ease)}
+  & .rs-seg button:active{transform:scale(.98)}
+  & .rs-seg button[aria-pressed=true]{background:var(--blue);color:#fff}
+  & .rs-swap{min-height:36px;padding:0 14px;font-size:14px}
+  & .rs-swap svg{width:17px;height:17px}
+  @media (hover:hover) and (pointer:fine){& .rs-seg button:not([aria-pressed=true]):hover{color:var(--ink)}}
+
+  & .rcmp{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:14px;container-type:size}
+  & .rs-pair{display:flex;gap:4px;align-items:flex-start;transition:opacity .18s var(--ease)}
+  & .rs-pair.fading{opacity:0;transition-duration:.15s}
+  & .rs-pl{margin:0;display:flex;flex-direction:column;--w:min(100cqw,calc(100cqh * 16 / 9))}
+  & .rcmp[data-mode=sbs] .rs-pl{--w:min(calc((100cqw - 4px) / 2),calc(100cqh * 16 / 9))}
+  & .rcmp[data-mode=orig] .rs-pl.col, & .rcmp[data-mode=col] .rs-pl.orig{display:none}
+  & .rcmp.swapped .rs-pl.orig{order:2}
+  & .rs-frame{position:relative;width:var(--w);aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#0B1120;isolation:isolate}
+  & .rcmp[data-mode=sbs] .rs-pl.orig .rs-frame, & .rcmp[data-mode=sbs].swapped .rs-pl.col .rs-frame{border-radius:12px 0 0 12px}
+  & .rcmp[data-mode=sbs] .rs-pl.col .rs-frame, & .rcmp[data-mode=sbs].swapped .rs-pl.orig .rs-frame{border-radius:0 12px 12px 0}
+  /* the "video" without a real clip: a 16:9 window panned across the scene by the shared playhead (transform only) */
+  & .rs-pan{position:absolute;top:0;bottom:0;left:0;width:131.25%;transform:translateX(calc(var(--pan,.29) * -23.8095%))}
+
+  /* transport: play/pause both, time code, filmstrip scrub, frame */
+  & .rs-transport{flex:none;display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;align-items:center;gap:14px;padding:12px 16px;border-radius:var(--r-card)}
+  & .rs-play{width:44px;height:44px;border-radius:50%;border:0;padding:0;background:var(--ink);color:#fff;display:grid;place-items:center;cursor:pointer;transition:transform .1s var(--ease),background-color .15s}
+  & .rs-play:active{transform:scale(.96)}
+  & .rs-play svg{width:18px;height:18px}
+  @media (hover:hover) and (pointer:fine){& .rs-play:hover{background:var(--blue-deep)}}
+  & .rs-tc{font:600 13.5px "DM Sans",sans-serif;font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap}
+  & .rs-tc .of{color:var(--ink-3);font-weight:500}
+  & .rs-scrub{position:relative;height:58px;min-width:0}
+  & .rs-strip{position:absolute;inset:0 0 10px;display:flex;gap:3px;border-radius:10px;overflow:hidden}
+  & .rs-th{position:relative;flex:1;min-width:0;overflow:hidden;background:#0B1120}
+  & .rs-track{position:absolute;left:0;right:0;bottom:0;height:4px;border-radius:4px;background:var(--line);overflow:hidden}
+  & .rs-track i{position:absolute;inset:0;background:var(--ink-3);transform-origin:left;transform:scaleX(var(--p,0))}
+  & .rs-head{position:absolute;top:-4px;bottom:0;width:2px;margin-left:-1px;background:var(--ink);left:calc(var(--p,0) * 100%);pointer-events:none}
+  & .rs-head::before{content:"";position:absolute;left:50%;top:-4px;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:#fff;box-shadow:inset 0 0 0 3px var(--ink)}
+  & .rs-scrub input{position:absolute;inset:-6px 0 0;width:100%;height:calc(100% + 6px);margin:0;opacity:0;cursor:pointer;touch-action:none}
+  & .rs-scrub:has(input:focus-visible){outline:3px solid var(--blue);outline-offset:4px;border-radius:10px}
+  & .rs-fr{font-size:13px;color:var(--ink-3);font-variant-numeric:tabular-nums;white-space:nowrap;min-width:150px;text-align:right}
+
+  /* right: the summary card, titled by the file name */
+  & .recipe{overflow:auto;padding:22px 22px 18px;overscroll-behavior:contain}
+  & .recipe header h2{font-size:22px;overflow-wrap:anywhere}
+  & .recipe header p{margin:4px 0 0;font-size:13.5px;color:var(--ink-3)}
+  & .sec{margin-top:18px}
+  & .sec-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
+  & .sec-h h3{font-size:14.5px;letter-spacing:-.01em}
+  & .rows{list-style:none;margin:0;padding:0}
+  & .row{display:flex;align-items:center;gap:10px;min-height:42px;padding:4px 0;border-top:1px solid var(--line-2)}
+  & .row:first-child{border-top:0}
+  & .row .nm{flex:1;min-width:0;font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  & .row .val{font-size:12.5px;color:var(--ink-3);font-variant-numeric:tabular-nums;white-space:nowrap}
+  & .chg{flex:none;min-height:32px;padding:0 10px;margin-right:-10px;border-radius:999px;display:inline-flex;align-items:center;color:var(--blue);font-weight:700;font-size:13px;text-decoration:none;transition:background-color .15s}
+  @media (hover:hover) and (pointer:fine){& .chg:hover{background:var(--blue-soft)}}
+  & .mthumb{position:relative;width:52px;height:30px;border-radius:7px;overflow:hidden;flex:none;background:#0B1120}
+  & .dots{display:inline-flex;gap:3px;flex:none}
+  & .dots i{width:10px;height:10px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(14,27,51,.12)}
+
+  & .out{margin-top:auto;padding-top:16px}
+  & .out #dl{width:100%}
+  /* the demo cannot save a file: the button stays the page's one pink action, shown inactive (soft pink, deep pink
+     text) rather than faded, so its label stays readable (4.5:1) */
+  & .out #dl[aria-disabled=true]{opacity:1;background:var(--pink-soft);color:var(--pink-deep);box-shadow:inset 0 0 0 1.5px rgba(200,50,107,.35);cursor:not-allowed}
+  & .alt .btn[aria-disabled=true]{opacity:1;color:var(--ink-3);cursor:not-allowed}
+  & .dlnote{margin:6px 0 0;font-size:12.5px;color:var(--ink-2);text-align:center}
+  & .alt{display:flex;flex-direction:column;gap:2px;margin-top:8px}
+  & .alt .btn{justify-content:flex-start;width:100%;padding:0 14px;text-align:left}
+  & .alt .btn svg{width:17px;height:17px;flex:none}
+  & .alt .btn.two{min-height:54px;padding:8px 14px;align-items:flex-start}
+  & .alt .btn.two svg{margin-top:2px}
+  & .alt .lbl{display:flex;flex-direction:column;line-height:1.3}
+  & .alt .lbl small{font-weight:500;font-size:12.5px;color:var(--ink-2)}
+  & .alt hr{border:0;border-top:1px solid var(--line-2);margin:6px 0;width:100%}
+  & #dl svg{width:17px;height:17px}
+
+  @media (max-width:1340px){gap:20px}
+  @media (max-height:840px){
+    & .recipe{padding:18px 20px 14px}
+    & .sec{margin-top:12px}
+    & .row{min-height:36px;padding:2px 0}
+    & .out{padding-top:10px}
+    & .alt{margin-top:4px}
+    & .alt .btn{min-height:38px}
+    & .alt .btn.two{min-height:50px;padding:6px 14px}
+    & .alt hr{margin:3px 0}
+  }
+
+  /* tablet portrait + phones: the page scrolls; the players size from their width */
+  @media (max-width:899px){
+    & .rcmp{flex:none;container-type:inline-size;padding:10px}
+    & .rs-pl{--w:100cqw}
+    & .rcmp[data-mode=sbs] .rs-pl{--w:calc((100cqw - 4px) / 2)}
+    & .recipe{overflow:visible}
+  }
+  @media (max-width:767px){
+    & .rs-seg{flex:1}
+    & .rs-seg button{flex:1;min-height:44px;padding:0 10px}
+    & .rs-swap{min-height:44px}
+    & .rs-transport{grid-template-columns:auto minmax(0,1fr) auto;gap:10px 12px;padding:10px 12px}
+    & .rs-scrub{grid-column:1/-1;grid-row:2}
+    & .rs-fr{min-width:0}
+    & .rs-tc{font-size:13px}
+    & .chg{min-height:44px}
+    & .alt .btn{min-height:44px}
+    & .recipe{padding:18px 16px 16px}
+  }
+  /* phones: side by side stacks (original above, colorized below) so each video stays a usable size */
+  @media (max-width:599px){
+    & .rcmp[data-mode=sbs] .rs-pair{flex-direction:column}
+    & .rcmp[data-mode=sbs] .rs-pl{--w:100cqw}
+    & .rcmp[data-mode=sbs] .rs-pl.orig .rs-frame, & .rcmp[data-mode=sbs].swapped .rs-pl.col .rs-frame{border-radius:12px 12px 0 0}
+    & .rcmp[data-mode=sbs] .rs-pl.col .rs-frame, & .rcmp[data-mode=sbs].swapped .rs-pl.orig .rs-frame{border-radius:0 0 12px 12px}
+  }
+}
+@media (prefers-reduced-motion:reduce){
+  .v5 .sp-results .rs-pair{transition:none}
+}

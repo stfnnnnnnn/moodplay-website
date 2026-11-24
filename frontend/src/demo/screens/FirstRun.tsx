@@ -13,8 +13,6 @@ import { prefersReducedMotion } from '../ui';
 
 const HOLD = 5000;
 const SCREENS = 3;
-const FONT_ID = 'v5-bricolage';
-const FONT_HREF = 'https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&display=swap';
 
 type Phase = 'play' | 'fly' | 'done';
 
@@ -37,20 +35,22 @@ export default function FirstRun() {
   const flight = useRef<Animation | null>(null);
   const auto = useRef<{ t: number | null; left: number; t0: number }>({ t: null, left: HOLD, t0: 0 });
 
-  // The "How it works" numbers use Bricolage Grotesque (as in the mockup); load it only for the demo.
-  useEffect(() => {
-    if (document.getElementById(FONT_ID)) return;
-    const l = document.createElement('link');
-    l.id = FONT_ID; l.rel = 'stylesheet'; l.href = FONT_HREF;
-    document.head.appendChild(l);
-  }, []);
+  // The "How it works" numbers use Sora (ruling R5): no font is loaded at runtime, so the demo makes no third-party request.
 
   const show = useCallback((i: number) => {
     i = Math.max(0, Math.min(SCREENS - 1, i));
     if (i === curRef.current) return;
     curRef.current = i;
     setCur(i);
-    requestAnimationFrame(() => document.getElementById('fr-h' + i)?.focus({ preventScroll: true }));
+    // the heading takes focus once its screen is shown (it can still be hidden on the first frame, as with reduced
+    // motion): retry for a few frames
+    const focusH = (tries: number) => requestAnimationFrame(() => {
+      if (curRef.current !== i) return;
+      const h = document.getElementById('fr-h' + i);
+      h?.focus({ preventScroll: true });
+      if (h && document.activeElement !== h && tries < 10) focusH(tries + 1);
+    });
+    focusH(0);
   }, []);
 
   const autoStop = useCallback(() => {

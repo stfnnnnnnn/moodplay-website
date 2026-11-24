@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentType } from 'react';
 import { flushSync } from 'react-dom';
 import './demo.css';
-import { DemoProvider, useDemo } from './store';
-import { PROJECT_SCREENS, hasScreenParam, screenFromUrl, tourFromUrl, type Screen, type ScreenProps } from './nav';
-import { DemoUiContext, prefersReducedMotion, type DemoUi } from './ui';
+import { DemoProvider, useDemo, useDemoExtra } from './store';
+import { PROJECT_SCREENS, hasScreenParam, screenFromUrl, type Screen, type ScreenProps } from './nav';
+import { DemoUiContext, navFocus, prefersReducedMotion, type DemoUi } from './ui';
 import FirstRun from './screens/FirstRun';
 import Home from './screens/Home';
 import Upload from './screens/Upload';
@@ -14,6 +14,8 @@ import RenderScreen from './screens/Render';
 import Results from './screens/Results';
 import Projects from './screens/Projects';
 import ProjectPage from './screens/ProjectPage';
+import { Tour } from './tour/Tour';
+import { deepLinkStep } from './tour/steps';
 
 /* MoodPlay web demo (/demo): a clickable replica of the v5 app on fake data.
    Screen = ?screen= + state. Screen swaps crossfade with the View Transitions API when available. */
@@ -42,6 +44,7 @@ export default function DemoApp() {
 
 function Shell() {
   const { state, dispatch, current } = useDemo();
+  const { markFirstRunSeen } = useDemoExtra();
   const [route, setRoute] = useState<Route>(readRoute);
   const [query, setQuery] = useState('');
   const first = useRef(true);
@@ -61,13 +64,16 @@ function Shell() {
     return () => window.removeEventListener('popstate', onPop);
   }, []);
 
-  // ?tour=n deep link starts the tour at that step (the tour itself is Task 7).
+  // ?tour=n deep link starts the tour at that step (1-26; with ?screen= set, at that screen's first step when n
+  // belongs to another page). Without ?screen= the tour opens the step's screen itself, so the link skips the intro.
   useEffect(() => {
-    const n = tourFromUrl(location.search);
-    if (n) dispatch({ type: 'tour', step: n });
-  }, [dispatch]);
+    const n = deepLinkStep(location.search);
+    if (n) { dispatch({ type: 'tour', step: n }); markFirstRunSeen(); }
+  }, [dispatch, markFirstRunSeen]);
 
-  const showIntro = route.screen === 'intro' || (!route.explicit && !state.firstRunSeen);
+  // a ?tour=n link skips the first-run intro from the first render (ruling R14), so the tour opens step n's screen
+  const [tourLink] = useState(() => deepLinkStep(location.search) != null);
+  const showIntro = route.screen === 'intro' || (!route.explicit && !state.firstRunSeen && !tourLink);
   const screen: Screen = showIntro ? 'intro' : route.screen;
 
   // Deep link / refresh mid-flow: a step screen without a current project opens one (an in-progress one first).
@@ -81,26 +87,36 @@ function Shell() {
 
   useEffect(() => { document.title = TITLES[screen] + ' · MoodPlay demo'; }, [screen]);
 
-  // Move focus to the new screen's heading after a swap (not on first load).
+  // Move focus to the new screen's heading after a swap (not on first load). When the swap came from typing in the
+  // top-bar search, focus stays in the (new) search field with the caret at the end, so typing carries on.
   useLayoutEffect(() => {
     if (first.current) { first.current = false; return; }
+    if (navFocus.search) {
+      navFocus.search = false;
+      const s = document.querySelector<HTMLInputElement>('.v5 .tsearch input');
+      if (s) { s.focus({ preventScroll: true }); const end = s.value.length; s.setSelectionRange(end, end); return; }
+    }
     const h = document.querySelector<HTMLElement>('.v5 main h1, .v5 main h2');
     if (h) { if (!h.hasAttribute('tabindex')) h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); }
   }, [screen, route.id]);
 
   /* ---------- toast (Undo): 6 s with Undo, 3.5 s without; pauses while hovered or focused ---------- */
+  const dropUndo = useCallback(() => dispatch({ type: 'undoDelete', forget: true }), [dispatch]);
   const [toastState, setToast] = useState<{ msg: string; undo?: () => void; on: boolean; key: number }>({ msg: '', on: false, key: 0 });
   const timer = useRef<{ t?: number; left: number; start: number; held: number }>({ left: 0, start: 0, held: 0 });
+  // the store keeps a deleted item for Undo only while its toast shows: it is dropped when the toast runs out, or when
+  // a toast without Undo replaces it (a new delete's toast comes with its own, fresh Undo)
   const arm = useCallback((ms: number) => {
     window.clearTimeout(timer.current.t);
     timer.current.left = ms; timer.current.start = Date.now();
-    timer.current.t = window.setTimeout(() => setToast(s => ({ ...s, on: false, undo: undefined })), ms);
-  }, []);
+    timer.current.t = window.setTimeout(() => { dropUndo(); setToast(s => ({ ...s, on: false, undo: undefined })); }, ms);
+  }, [dropUndo]);
   const toast = useCallback((msg: string, undo?: () => void) => {
     timer.current.held = 0;
+    if (!undo) dropUndo();
     setToast(s => ({ msg, undo, on: true, key: s.key + 1 }));
     arm(undo ? 6000 : 3500);
-  }, [arm]);
+  }, [arm, dropUndo]);
   useEffect(() => () => window.clearTimeout(timer.current.t), []);
   const pause = () => {
     if (!toastState.on) return;
@@ -120,6 +136,7 @@ function Shell() {
       <div className="v5" data-screen={screen}>
         <span className="bloom p" aria-hidden="true" /><span className="bloom b" aria-hidden="true" />
         {needsProject ? null : <Comp key={screen === 'project' ? 'project' : screen} id={route.id} />}
+        {needsProject ? null : <Tour screen={screen} />}
         <div className={'toast' + (toastState.on ? ' on' : '')} role="status" aria-live="polite"
           onMouseEnter={pause} onMouseLeave={resume} onFocus={pause} onBlur={resume}>
           <span>{toastState.msg}</span>

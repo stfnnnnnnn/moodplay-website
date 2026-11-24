@@ -5,7 +5,7 @@ import { IconPlus } from '../chrome/Icons';
 import { StepBars, StepLabel } from '../chrome/StepBars';
 import { Scene } from '../scene';
 import { STEP_NAMES, coloredCount, isColor, useDemo, type Project } from '../store';
-import { STEP_SCREENS, demoHref, go, linkClick } from '../nav';
+import { STEP_SCREENS, demoHref, linkClick } from '../nav';
 import { MOOD_LABEL, day, plural, realMood, word, wordLower } from '../format';
 
 /* Home (v5-home.html): the Resume frame (where you stopped, coloured objects in colour, the rest grey),
@@ -27,33 +27,19 @@ function helloCopy(p: Project): [string, string] {
   return ['Welcome back', at];
 }
 
-function useHoldSpace() {
-  const [holding, setHolding] = useState(false);
-  useEffect(() => {
-    const skip = (t: EventTarget | null) => t instanceof HTMLElement && !!t.closest('input,textarea,select,button,a,[contenteditable]');
-    const down = (e: KeyboardEvent) => { if (e.code === 'Space' && !e.repeat && !skip(e.target)) { e.preventDefault(); setHolding(true); } };
-    const up = (e: KeyboardEvent) => { if (e.code === 'Space') setHolding(false); };
-    const blur = () => setHolding(false);
-    document.addEventListener('keydown', down); document.addEventListener('keyup', up); window.addEventListener('blur', blur);
-    return () => { document.removeEventListener('keydown', down); document.removeEventListener('keyup', up); window.removeEventListener('blur', blur); };
-  }, []);
-  return holding;
-}
-
 function ResumeFrame({ p }: { p: Project }) {
-  const holding = useHoldSpace();
   const n = coloredCount(p);
   const alt = `${p.name}, current frame: ` + (n === 0 ? 'nothing is colored yet' :
     p.objects.filter(o => isColor(o.color)).map(o => o.label).join(' and ') + (n === p.objects.length ? ' are colored' : ' are colored; the rest is still black and white'));
   return (
-    <div className={'frame' + (holding ? ' holding' : '')} style={{ viewTransitionName: 'pthumb-' + p.id } as CSSProperties}>
+    <div className="frame" style={{ viewTransitionName: 'pthumb-' + p.id } as CSSProperties}>
       <div className="lay" role="img" aria-label={alt}><Scene variant="gray" objects={p.objects} mood={p.finished ? p.mood : null} /></div>
-      <div className="orig" aria-hidden="true"><Scene variant="gray" /></div>
       {p.objects.map(o => {
         const c = isColor(o.color) ? o.color : null;
         const style = { left: `${((o.box[0] + o.box[2]) / 2 / 21).toFixed(1)}%`, top: `${(o.box[1] / 9).toFixed(1)}%` };
         return (
-          <span key={o.id} className={'mk' + (c ? '' : ' wait')} style={style}>
+          // an object at the top edge gets its marker inside its box, not above the frame
+          <span key={o.id} className={'mk' + (c ? '' : ' wait') + (o.box[1] < 130 ? ' in' : '')} style={style}>
             <span className="obj">{o.id}</span><span className="lbl">{o.label}</span>
             {c && <span className="sw" style={{ background: c }} />}
           </span>
@@ -123,7 +109,7 @@ function FirstRunEmpty() {
         <div className="still" role="img" aria-label="The sample clip: a street with a shopfront, a car and three people, in black and white"><Scene variant="gray" /></div>
         <div>
           <h1 id="fr-h">Welcome to MoodPlay</h1>
-          <p>You don't have any projects yet. Upload a black-and-white clip, or make a sample project and try every step on it first.</p>
+          <p>You don’t have any projects yet. Upload a black-and-white clip, or make a sample project and try every step on it first.</p>
           <div className="acts">
             <button className="btn btn-pink btn-lg" type="button" disabled={busy} data-tour="tut_make_sample"
               onClick={() => { setBusy(true); t.current = window.setTimeout(() => dispatch({ type: 'createSample' }), 700); }}>
@@ -172,7 +158,7 @@ export default function Home() {
               </div>
             </div>
             <div className="grid" id="grid">
-              <a className="tile newtile" href={demoHref('upload')} onClick={e => { e.preventDefault(); go('upload'); }}>
+              <a className="tile newtile" href={demoHref('upload')} onClick={linkClick('upload')}>
                 <div className="th"><span className="plus"><IconPlus /></span>Upload video<small>or drop a file anywhere</small></div>
               </a>
               {others.filter(shown).map(p => <Tile key={p.id} p={p} />)}

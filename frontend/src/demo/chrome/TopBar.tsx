@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useDemo, type Step } from '../store';
-import { STEP_SCREENS, TOUR_FIRST, demoHref, go, linkClick } from '../nav';
-import { useDemoUi } from '../ui';
+import { STEP_SCREENS, TOUR_FIRST, demoHref, go, linkClick, screenFromUrl } from '../nav';
+import { navFocus, useDemoUi } from '../ui';
 import { IconHelp, IconSearch, IconUpload } from './Icons';
 import { StepRail } from './StepRail';
 
@@ -27,8 +27,8 @@ function TutorialButton({ tourStep }: { tourStep: number }) {
   );
 }
 
-type HomeProps = { kind: 'home'; active: 'home' | 'projects' | null };
-type StepProps = { kind: 'step'; step: Step; reached: Step; extra?: ReactNode; tourStep?: number };
+type HomeProps = { kind: 'home'; active: 'home' | 'projects' | null; tourStep?: number };
+type StepProps = { kind: 'step'; step: Step; reached: Step; extra?: ReactNode; tourStep?: number; lockPast?: boolean; nowNote?: string };
 
 export function TopBar(props: HomeProps | StepProps) {
   const { state } = useDemo();
@@ -38,7 +38,7 @@ export function TopBar(props: HomeProps | StepProps) {
     return (
       <header className="topbar step">
         <div className="tb-l"><Wordmark /></div>
-        <StepRail now={props.step} reached={props.reached} />
+        <StepRail now={props.step} reached={props.reached} lockPast={props.lockPast} nowNote={props.nowNote} />
         <div className="tb-r">
           <div className="tactions">
             <TutorialButton tourStep={props.tourStep ?? TOUR_FIRST[STEP_SCREENS[props.step - 1]]} />
@@ -63,11 +63,16 @@ export function TopBar(props: HomeProps | StepProps) {
       <div className="tactions">
         <label className="tsearch">
           <IconSearch />
-          <input type="search" placeholder="Search projects" aria-label="Search projects by name or mood" autoComplete="off" value={query}
-            onChange={e => { setQuery(e.target.value); if (active !== 'projects') go('projects'); }} />
+          <input type="search" placeholder="Search projects" aria-label="Search projects by name or mood" autoComplete="off" maxLength={200} value={query}
+            onChange={e => {
+              setQuery(e.target.value);
+              // typing on Home or a project page opens Projects once (keys typed during the swap must not push it
+              // again), and the shell keeps focus in this field there (navFocus) so the whole query lands in it
+              if (active !== 'projects' && screenFromUrl(location.search).screen !== 'projects') { navFocus.search = true; go('projects'); }
+            }} />
         </label>
         <span className="div" aria-hidden="true" />
-        <TutorialButton tourStep={TOUR_FIRST[active ?? 'projects']} />
+        <TutorialButton tourStep={props.tourStep ?? TOUR_FIRST[active ?? 'projects']} />
         <a className="btn btn-blue" href={demoHref('upload')} onClick={linkClick('upload')} data-tour="landing_btn">
           <IconUpload /><span>Upload<span className="lbl-long"> video</span></span>
         </a>

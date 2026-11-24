@@ -22,3 +22,7 @@ export function setPending(id: string | null, act: 'rename' | 'delete' | null, f
   if (fromGrid !== undefined) pending.fromGrid = fromGrid;
 }
 export function clearFromGrid() { pending.fromGrid = false; }
+
+/** Set by the top-bar search when typing in it opens Projects: the shell then keeps focus in the search field
+ *  (caret at the end) instead of moving it to the new page's heading, so the rest of the query is not lost. */
+export const navFocus: { search: boolean } = { search: false };

@@ -1,7 +1,4 @@
 import { Suspense, lazy, useCallback, useState } from 'react';
-import { auth, googleProvider, db } from './firebase';
-import { signInWithPopup } from 'firebase/auth';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import Landing from './landing/Landing';
 import TermsModal from './landing/TermsModal';
 
@@ -22,6 +19,11 @@ export default function MoodPlayLanding() {
     setTosMode(null); // Close modal before launching popup
     setIsAuthenticating(true);
     try {
+      // Firebase loads here, on demand (security report M1): the landing and /demo render without it, and a build
+      // with no VITE_FIREBASE_* values fails in this try/catch (the usual sign-in error) instead of blanking the site.
+      const [{ auth, googleProvider, db }, { signInWithPopup }, { collection, addDoc, serverTimestamp }] =
+        await Promise.all([import('./firebase'), import('firebase/auth'), import('firebase/firestore')]);
+
       // 1. Google Login Popup
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;

@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
 import type { Project } from '../store';
 import { Scene } from '../scene';
-import { MOOD_DOT, MOOD_LABEL, mid, plural, realMood, short, shownMood } from '../format';
+import { CROP, MOOD_DOT, MOOD_LABEL, mid, plural, realMood, short, shownMood } from '../format';
 import { IconDots } from './Icons';
 import { StepBars, StepLabel } from './StepBars';
 
@@ -70,7 +70,7 @@ export function ProjectCard({ p, onOpen, menu, tourId }: { p: Project; onOpen: (
   return (
     <article className="pc" data-id={p.id} data-tour={tourId}>
       <div className="th" style={{ viewTransitionName: 'pthumb-' + p.id } as CSSProperties}>
-        <Scene variant="gray" objects={p.objects} mood={shownMood(p)} viewBox="310 0 1680 900" />
+        <Scene variant="gray" objects={p.objects} mood={shownMood(p)} viewBox={CROP} />
         <span className={'badge ' + (p.finished ? 'fin' : 'wip')}>{p.finished ? 'Finished' : 'In progress'}</span>
         {p.renders.length > 0 && <span className="chip runs-n">{plural(p.renders.length, 'render', 'renders')}</span>}
       </div>

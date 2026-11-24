@@ -5,17 +5,16 @@ import { IconChev, IconDownload, IconDup, IconLeft, IconPen, IconPlay, IconTrash
 import { MoodLine, MoreMenu, Name, Progress } from '../chrome/ProjectCard';
 import { StepBars } from '../chrome/StepBars';
 import { Scene } from '../scene';
-import { STEP_NAMES, isColor, useDemo, useDemoExtra, type Project, type Render } from '../store';
-import { STEP_SCREENS, demoHref, go, linkClick, type ScreenProps, type Screen } from '../nav';
+import { LIMITS, STEP_NAMES, copyName, isColor, useDemo, useDemoExtra, type Project, type Render } from '../store';
+import { STEP_SCREENS, TOUR_FIRST, demoHref, go, linkClick, type ScreenProps, type Screen } from '../nav';
 import { clearFromGrid, pending, setPending, useDemoUi } from '../ui';
-import { MOOD_LABEL, clock, day, mid, plural, renderLength, shownMood } from '../format';
+import { CROP, MOOD_LABEL, clock, day, mid, plural, renderLength, shownMood } from '../format';
 
 /* Project page, version B (v5-projects-b.html): hero frame + summary and actions, object colours, renders
    (History merged in), plus the owner's right rail (~260px) listing every project; the current one is marked
    and clicking another switches the page. Below 1200px the rail moves under the page, below 768px it is a
    sideways strip. "Show in folder" is hidden in the web demo; downloads are available in the app only. */
 
-const CROP = '310 0 1680 900';
 const TASK: Record<Render['kind'], string> = { 'Colorize + mood': 't-cm', 'Colorize only': 't-c', 'Mood only': 't-m' };
 
 export default function ProjectPage({ id }: ScreenProps) {
@@ -31,7 +30,7 @@ export default function ProjectPage({ id }: ScreenProps) {
   if (!p) return null;
   return (
     <>
-      <TopBar kind="home" active={null} />
+      <TopBar kind="home" active={null} tourStep={TOUR_FIRST.project} />
       <main className="ppage">
         <div className="pp">
           <ProjectView key={p.id} p={p} onLeave={() => { leaving.current = true; }} />
@@ -49,7 +48,7 @@ function goBack() {
 
 function ProjectView({ p, onLeave }: { p: Project; onLeave: () => void }) {
   const { dispatch } = useDemo();
-  const { duplicate } = useDemoExtra();
+  const { duplicate, openRender } = useDemoExtra();
   const { toast } = useDemoUi();
   const [initial] = useState(() => (pending.id === p.id ? pending.act : null));
   const [renaming, setRenaming] = useState(initial === 'rename');
@@ -85,7 +84,8 @@ function ProjectView({ p, onLeave }: { p: Project; onLeave: () => void }) {
     return () => document.removeEventListener('keydown', onKey);
   }, [renaming, asking, askRun, p.name]);
 
-  const openAt = (screen: Screen) => { dispatch({ type: 'open', id: p.id }); go(screen); };
+  // reopens the project with this render's colours and mood (the render's snapshot), at the chosen step
+  const openAt = (r: Render, screen: Screen) => { openRender(p.id, r.id); go(screen); };
   const saveName = () => {
     const v = draft.trim();
     if (v && v !== p.name) { dispatch({ type: 'rename', id: p.id, name: v }); setLive('Renamed to ' + v + '.'); }
@@ -93,10 +93,9 @@ function ProjectView({ p, onLeave }: { p: Project; onLeave: () => void }) {
     requestAnimationFrame(() => nameRef.current?.focus());
   };
   const dup = () => {
-    const name = p.name.replace(/(\.[^.]+)$/, ' (copy)$1');
     const newId = duplicate(p.id);
     go('project', { id: newId }, { replace: true });
-    toast('Duplicated. Pick a new mood for ' + mid(name, 40) + '.');
+    toast('Duplicated. Pick a new mood for ' + mid(copyName(p.name), 40) + '.');
   };
   const del = () => {
     onLeave();
@@ -142,13 +141,13 @@ function ProjectView({ p, onLeave }: { p: Project; onLeave: () => void }) {
         <div className="sum d-rest">
           {!renaming && (
             <div className="sum-name">
-              <h1 id="d-name" tabIndex={-1} ref={nameRef}>{p.name}</h1>
+              <h1 id="d-name" tabIndex={-1} ref={nameRef} title={p.name}>{p.name}</h1>
               <button className="icon-btn" type="button" aria-label="Rename project" onClick={() => { setDraft(p.name); setRenaming(true); }}><IconPen /></button>
             </div>
           )}
           {renaming && (
             <div className="rename">
-              <input ref={inputRef} aria-label="Project name" value={draft} onChange={e => setDraft(e.target.value)}
+              <input ref={inputRef} aria-label="Project name" maxLength={LIMITS.name} value={draft} onChange={e => setDraft(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') saveName(); }} />
               <button className="btn btn-blue" type="button" onClick={saveName}>Save</button>
               <button className="btn btn-ghost" type="button" onClick={() => { setRenaming(false); setDraft(p.name); requestAnimationFrame(() => nameRef.current?.focus()); }}>Cancel</button>
@@ -192,7 +191,7 @@ function ProjectView({ p, onLeave }: { p: Project; onLeave: () => void }) {
               <li className="ochip" key={o.id}>
                 <span className="obj">{o.id}</span>
                 <span className={'sw' + (c ? '' : ' none')} style={c ? { background: c } : undefined} />
-                <div><b>{o.label}</b><small>{c ?? (o.color === 'retain' ? 'Keeps its original color' : 'Not colored yet')}</small></div>
+                <div><b title={o.label}>{o.label}</b><small>{c ?? (o.color === 'retain' ? 'Keeps its original color' : 'Not colored yet')}</small></div>
               </li>
             );
           })}
@@ -206,7 +205,7 @@ function ProjectView({ p, onLeave }: { p: Project; onLeave: () => void }) {
             <div className="rcols" aria-hidden="true"><span>Preview</span><span>Rendered</span><span>Task</span><span>Mood</span><span>Frames</span><span>Objects</span><span>Video</span><span /></div>
             {p.renders.map(r => (
               <RunRow key={r.id} p={p} r={r} open={openRuns.has(r.id)} asking={askRun === r.id} gone={gone === r.id}
-                onToggle={() => toggleRun(r.id)} onAsk={() => setAskRun(r.id)} onKeep={() => setAskRun(null)} onDelete={() => delRun(r)} onOpenAt={openAt}
+                onToggle={() => toggleRun(r.id)} onAsk={() => setAskRun(r.id)} onKeep={() => setAskRun(null)} onDelete={() => delRun(r)} onOpenAt={s => openAt(r, s)}
                 onPlay={() => toast('Playback is in the MoodPlay app. The web demo shows a still frame.')} />
             ))}
           </div>
@@ -234,10 +233,11 @@ function RunRow({ p, r, open, asking, gone, onToggle, onAsk, onKeep, onDelete, o
   const mood = r.mood !== 'none' ? MOOD_LABEL[r.mood] : null;
   const len = renderLength(r.frames);
   const rb = 'rb-' + r.id;
+  const objects = r.scene ?? p.objects; // the colours this render was made with
   return (
     <article className={'run' + (open ? ' open' : '') + (gone ? ' gone' : '')} aria-label={`Render from ${day(r.at)}, ${clock(r.at)}`}>
       <div className="rrow">
-        <span className="rth"><Scene variant="gray" objects={p.objects} mood={r.mood} viewBox={CROP} /></span>
+        <span className="rth"><Scene variant="gray" objects={objects} mood={r.mood} viewBox={CROP} /></span>
         <span className="rwhen"><b>{day(r.at)}, {clock(r.at)}</b><span>{len}</span></span>
         <span className="rtask"><span className={'chip ' + TASK[r.kind]}>{r.kind}</span></span>
         <span className={'rc mo' + (mood ? '' : ' none')}><small aria-hidden="true">Mood</small><span className="sr">Mood: </span><span className="v">{mood ?? 'None'}</span></span>
@@ -252,7 +252,7 @@ function RunRow({ p, r, open, asking, gone, onToggle, onAsk, onKeep, onDelete, o
       <div className="rbody" id={rb} inert={!open}>
         <div className="rin"><div className="rgrid">
           <div className="pv">
-            <Scene variant="gray" objects={p.objects} mood={r.mood} viewBox={CROP} videoSrc={r.videoSrc} />
+            <Scene variant="gray" objects={objects} mood={r.mood} viewBox={CROP} videoSrc={r.videoSrc} />
             <button className="play" type="button" aria-label="Play this render" onClick={onPlay}><IconPlay /></button>
             <span className="chip dur">{len}</span>
           </div>

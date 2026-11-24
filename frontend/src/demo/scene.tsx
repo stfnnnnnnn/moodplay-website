@@ -30,7 +30,7 @@ function SceneSvg({ variant = 'gray', objects, viewBox = '0 0 2100 900', classNa
   const bg = variant === 'color' ? COLOR : GRAY;
   const col = (i: number): string | null => {
     if (!objects) return variant === 'color' ? SAMPLE_COLORS[i] : null;
-    const c = objects[i]?.color;
+    const c = objects.find(o => o.id === i + 1)?.color ?? null; // by id: Detect can remove or add objects
     return isColor(c) ? c : null;
   };
   const [c1, c2, c3, c4, c5] = [0, 1, 2, 3, 4].map(col);
@@ -47,6 +47,10 @@ function SceneSvg({ variant = 'gray', objects, viewBox = '0 0 2100 900', classNa
       <circle cx="440" cy="420" r="46" fill={c1 ? SKIN[0] : OFF.p1} /><path d={P1} fill={c1 ?? OFF.p1} />
       <circle cx="1610" cy="390" r="44" fill={c4 ? SKIN[1] : OFF.p2} /><path d={P2} fill={c4 ?? OFF.p2} />
       <circle cx="1870" cy="460" r="36" fill={c5 ? SKIN[2] : OFF.p3} /><path d={P3} fill={c5 ?? OFF.p3} />
+      {/* objects added in Detect (beyond the five drawn above) show their colour as a soft wash over their area */}
+      {objects?.filter(o => o.id > 5).map(o => (isColor(o.color)
+        ? <rect key={o.id} x={o.box[0]} y={o.box[1]} width={o.box[2] - o.box[0]} height={o.box[3] - o.box[1]} rx="24" fill={o.color} opacity=".55" />
+        : null))}
     </svg>
   );
 }

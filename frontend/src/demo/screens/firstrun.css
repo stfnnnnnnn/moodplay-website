@@ -50,7 +50,7 @@
   &.entering .fr-hero h1 .wm{visibility:hidden}
   &.landed .fr-hero h1 .w{animation:v5-up .55s cubic-bezier(.2,.8,.2,1) both}
   /* the welcome screen already shows the name, so the small top-left wordmark waits for the next screens */
-  & .fr-top .wmk{transition:opacity .3s cubic-bezier(.2,.8,.2,1);font-size:24px;line-height:1.1;min-height:0}
+  & .fr-top .wmk{transition:opacity .2s cubic-bezier(.2,.8,.2,1);font-size:24px;line-height:1.1;min-height:0}
   &[data-s="0"] .fr-top .wmk{opacity:0;visibility:hidden}
   &[data-s="1"] .fr-back{visibility:hidden}
   &[data-s="0"] .scr.fr-hero{cursor:pointer}
@@ -60,7 +60,7 @@
   & .fr-bloom{position:absolute;border-radius:50%;filter:blur(90px);pointer-events:none;z-index:0}
   & .fr-top{position:absolute;top:0;left:0;right:0;z-index:5;display:flex;align-items:center;justify-content:space-between;padding:18px 28px}
   & .scr{position:absolute;inset:0;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:84px 40px 110px;
-    opacity:0;visibility:hidden;transform:translateX(40px);transition:opacity .45s cubic-bezier(.2,.8,.2,1),transform .45s cubic-bezier(.2,.8,.2,1),visibility 0s .45s}
+    opacity:0;visibility:hidden;transform:translateX(40px);transition:opacity .22s cubic-bezier(.2,.8,.2,1),transform .22s cubic-bezier(.2,.8,.2,1),visibility 0s .22s}
   & .scr.on{opacity:1;visibility:visible;transform:none;transition-delay:0s}
   & .scr.past{transform:translateX(-40px)}
 
@@ -105,17 +105,17 @@
   & .bands .lbls{position:absolute;left:0;right:0;bottom:0;z-index:2;display:grid;grid-template-columns:repeat(4,1fr);background:linear-gradient(0deg,rgba(14,27,51,.72),transparent)}
   & .bands .lbls span{font:700 11.5px/1.2 "DM Sans",sans-serif;color:#fff;text-align:center;padding:18px 2px 8px}
   & .cards .fr-card{opacity:0;transform:translateY(18px)}
-  & .scr.on .cards .fr-card{animation:v5-up .55s cubic-bezier(.2,.8,.2,1) forwards}
-  & .scr.on .cards .fr-card:nth-child(1){animation-delay:.12s}
-  & .scr.on .cards .fr-card:nth-child(2){animation-delay:.2s}
-  & .scr.on .cards .fr-card:nth-child(3){animation-delay:.28s}
+  & .scr.on .cards .fr-card{animation:v5-up .22s cubic-bezier(.2,.8,.2,1) forwards}
+  & .scr.on .cards .fr-card:nth-child(1){animation-delay:.04s}
+  & .scr.on .cards .fr-card:nth-child(2){animation-delay:.1s}
+  & .scr.on .cards .fr-card:nth-child(3){animation-delay:.14s}
 
   /* 3 how it works: horizontal timeline */
   & .tl{list-style:none;margin:0 auto;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) max-content;gap:0;width:min(1240px,100%)}
   & .tl li{padding-right:clamp(16px,2vw,30px);min-width:0}
   & .tl li:last-child{padding-right:0}
   & .tl li:last-child p{max-width:15em}
-  & .tl .n{display:flex;align-items:center;gap:14px;font:800 clamp(64px,6.2vw,92px)/1 "Bricolage Grotesque",Sora,sans-serif;letter-spacing:-.05em;color:var(--c)}
+  & .tl .n{display:flex;align-items:center;gap:14px;font:800 clamp(64px,6.2vw,92px)/1 Sora,sans-serif;letter-spacing:-.05em;color:var(--c)}
   & .tl .n::after{content:"";flex:1;height:2px;background:var(--c);transform-origin:left;margin-top:4px}
   & .tl li:last-child .n::after{display:none}
   & .tl li.mid .n::after{background:#DADFE8}
@@ -123,19 +123,19 @@
   & .tl p{margin:0;color:var(--ink-2);font-size:clamp(15px,1.15vw,17px);line-height:1.6;max-width:17em}
   & .tl li{opacity:0;transform:translateY(14px)}
   & .tl .n::after{transform:scaleX(0)}
-  & .scr.on .tl li{animation:v5-up .5s cubic-bezier(.2,.8,.2,1) forwards}
-  & .scr.on .tl .n::after{animation:v5-grow .45s cubic-bezier(.65,0,.35,1) forwards}
-  & .scr.on .tl li:nth-child(1), & .scr.on .tl li:nth-child(1) .n::after{animation-delay:.10s}
-  & .scr.on .tl li:nth-child(2), & .scr.on .tl li:nth-child(2) .n::after{animation-delay:.22s}
-  & .scr.on .tl li:nth-child(3), & .scr.on .tl li:nth-child(3) .n::after{animation-delay:.34s}
-  & .scr.on .tl li:nth-child(4), & .scr.on .tl li:nth-child(4) .n::after{animation-delay:.46s}
-  & .scr.on .tl li:nth-child(5){animation-delay:.58s}
+  & .scr.on .tl li{animation:v5-up .22s cubic-bezier(.2,.8,.2,1) forwards}
+  & .scr.on .tl .n::after{animation:v5-grow .22s cubic-bezier(.2,.8,.2,1) forwards}
+  & .scr.on .tl li:nth-child(1), & .scr.on .tl li:nth-child(1) .n::after{animation-delay:.04s}
+  & .scr.on .tl li:nth-child(2), & .scr.on .tl li:nth-child(2) .n::after{animation-delay:.1s}
+  & .scr.on .tl li:nth-child(3), & .scr.on .tl li:nth-child(3) .n::after{animation-delay:.14s}
+  & .scr.on .tl li:nth-child(4), & .scr.on .tl li:nth-child(4) .n::after{animation-delay:.17s}
+  & .scr.on .tl li:nth-child(5){animation-delay:.19s}
 
   /* bottom bar (features + how it works) */
-  & .bar{position:absolute;left:0;right:0;bottom:0;z-index:5;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:22px 32px 26px;transition:opacity .3s}
+  & .bar{position:absolute;left:0;right:0;bottom:0;z-index:5;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:22px 32px 26px;transition:opacity .2s}
   & .bar .r{display:flex;justify-content:flex-end;gap:12px}
   & .dots{display:flex;gap:8px}
-  & .dots i{width:8px;height:8px;border-radius:999px;background:#C9D1DF;transition:width .3s,background-color .3s}
+  & .dots i{width:8px;height:8px;border-radius:999px;background:#C9D1DF;transition:background-color .2s}
   & .dots i.on{width:28px;background:var(--pink)}
   &[data-s="0"] .bar{opacity:0;pointer-events:none}
 

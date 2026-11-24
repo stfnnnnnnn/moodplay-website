@@ -9,7 +9,7 @@
    (fr-hero, fr-film, wsteps, sbars). */
 
 .v5 {
-  --ink:#0E1B33;--ink-2:#4E5A70;--ink-3:#6B7588;--line:#DFE4EC;--line-2:#EEF1F6;
+  --ink:#0E1B33;--ink-2:#4E5A70;--ink-3:#616B7E;--line:#DFE4EC;--line-2:#EEF1F6;
   --bg:#F6F7FB;--panel:#FFFFFF;--panel-2:#F3F5F9;
   --pink:#C8326B;--pink-deep:#9E1F50;--pink-soft:#FCE6EE;
   --blue:#2350B8;--blue-deep:#1A3D8F;--blue-soft:#E4ECFA;
@@ -29,6 +29,7 @@
   & h1, & h2, & h3, & h4{font-family:Sora,sans-serif;margin:0;letter-spacing:-.03em;font-weight:700;color:inherit}
   & p{margin:0}
   & :focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+  & :is(h1,h2,h3)[tabindex="-1"]:focus, & :is(h1,h2,h3)[tabindex="-1"]:focus-visible{outline:none}
   & button{font:inherit;color:inherit}
   & button, & a, & [role=button]{touch-action:manipulation}
   & .btn, & .seg button, & .filter button{-webkit-user-select:none;user-select:none}
@@ -45,7 +46,8 @@
   /* buttons */
   & .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:0 18px;border-radius:999px;border:0;cursor:pointer;text-decoration:none;font:700 14.5px "DM Sans",sans-serif;white-space:nowrap;transition:background-color .15s,box-shadow .15s,color .15s,transform .1s var(--ease)}
   & .btn:active:not(:disabled){transform:scale(.98)}
-  & .btn:disabled{cursor:not-allowed}
+  /* landing.css fades every disabled .btn to .6; the demo styles its own inactive states (readable labels) */
+  & .btn:disabled{cursor:not-allowed;opacity:1}
   & .btn-pink{background:var(--pink);color:#fff;box-shadow:0 10px 22px -12px rgba(200,50,107,.8)}
   & .btn-line{background:#fff;color:var(--blue);box-shadow:inset 0 0 0 1.5px var(--blue)}
   & .btn-quiet{background:transparent;color:var(--ink-2)}
@@ -85,7 +87,7 @@
   & .hold[aria-pressed=true]{background:var(--blue-soft);color:var(--blue);box-shadow:inset 0 0 0 1px var(--blue)}
 
   /* step rail (editor pages): done = blue check, current = pink pill, locked = muted */
-  & .rail{display:flex;align-items:center;gap:2px;list-style:none;margin:0;padding:4px;border-radius:999px;background:rgba(255,255,255,.75);box-shadow:inset 0 0 0 1px var(--line);grid-template-columns:none}
+  & .rail{display:flex;flex:none;overflow:visible;align-items:center;gap:2px;list-style:none;margin:0;padding:4px;border-radius:999px;background:rgba(255,255,255,.75);box-shadow:inset 0 0 0 1px var(--line);grid-template-columns:none}
   & .rail li{display:flex}
   & .rail a{display:flex;align-items:center;gap:7px;min-height:36px;padding:0 14px;border-radius:999px;color:var(--ink-3);text-decoration:none;font-weight:600;font-size:14px;position:relative;white-space:nowrap;transition:background-color .15s,color .15s}
   & .rail .done a{color:var(--ink-2)}
@@ -127,17 +129,22 @@
   @media (hover:hover) and (pointer:fine){& .toast .btn:hover{background:rgba(255,255,255,.24)}}
   & .toast:not(:has(.btn)){padding-right:18px}
 
-  /* placeholder step page (replaced by the step screens in Tasks 4-6) */
-  & .stub{max-width:1440px;margin:0 auto;padding:4px var(--gutter) 32px;display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:20px}
-  & .stub .viewer{aspect-ratio:21/9}
-  & .stub .card{padding:24px;display:flex;flex-direction:column;gap:12px}
-  & .stub .card p{color:var(--ink-2)}
-  & .stub .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto}
-
   /* Responsive top bar */
+  /* touch (and phone widths, below): every target at least 44px (global constraint); inline text links get a
+     taller hit area. Two blocks: a comma media list inside nesting is dropped by the dev CSS transform. */
+  @media (pointer:coarse){
+    & .btn, & .seg button, & .filter button, & .rail a, & .sort select, & .usel{min-height:44px}
+    & .lnk{padding-block:12px}
+  }
+
   @media (max-width:1180px){& .tsearch{display:none} & .tactions .div{display:none}}
-  @media (max-width:1100px){& .topbar.step{grid-template-columns:auto minmax(0,1fr) auto} & .topbar.step nav{min-width:0;display:flex;justify-content:center}}
-  @media (max-width:900px){& .hold .hl{display:none} & .stub{grid-template-columns:minmax(0,1fr)}}
+  @media (max-width:1100px){
+    & .topbar.step{grid-template-columns:auto minmax(0,1fr) auto}
+    /* the rail scrolls sideways when it doesn't fit; StepRail keeps the current step in view */
+    & .topbar.step nav{min-width:0;display:flex;justify-content:safe center;overflow-x:auto;scrollbar-width:none;padding:6px 4px;overscroll-behavior-x:contain}
+    & .topbar.step nav::-webkit-scrollbar{display:none}
+  }
+  @media (max-width:900px){& .hold .hl{display:none}}
   @media (max-width:767px){
     --gutter:16px;
     /* smaller blooms so pink and blue stay in opposite corners and never overlap on a phone */
@@ -156,8 +163,24 @@
     & .topbar.step .tb-r{margin-left:auto}
     & .topbar.step nav{order:3;width:calc(100% + 2 * var(--gutter));margin:0 calc(-1 * var(--gutter));justify-content:flex-start;overflow-x:auto;scrollbar-width:none;padding:2px var(--gutter);overscroll-behavior-x:contain}
     & .topbar.step nav::-webkit-scrollbar{display:none}
-    & .rail a{min-height:40px;padding:0 12px}
+    & .rail a{min-height:44px;padding:0 12px}
+    & .btn, & .seg button, & .filter button, & .sort select, & .usel{min-height:44px}
+    & .lnk{padding-block:12px}
   }
+}
+/* touch targets and field sizes, last word: at least 44px on a touch screen or a phone-width window (global constraint). Tripled
+   .v5 so it outranks each screen's own sizes; two blocks because the rule set is the same for both conditions. */
+@media (pointer:coarse){
+  .v5.v5.v5 :is(.wmk,.tnav a,.orow,.cbtn,.bsm,.rs-seg button,.rs-swap,.chg,.tools button,.tour-btn){min-height:44px}
+  .v5.v5.v5 :is(.menu-btn,.iconbtn,.filecard .iconbtn,.xp){width:44px;height:44px}
+  /* iOS zooms into a focused field under 16px and stays zoomed: every field is 16px on touch and phones */
+  .v5.v5.v5 :is(input:not([type=range]):not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea){font-size:16px}
+}
+@media (max-width:767px){
+  .v5.v5.v5 :is(.wmk,.tnav a,.orow,.cbtn,.bsm,.rs-seg button,.rs-swap,.chg,.tools button,.tour-btn){min-height:44px}
+  .v5.v5.v5 :is(.menu-btn,.iconbtn,.filecard .iconbtn,.xp){width:44px;height:44px}
+  /* iOS zooms into a focused field under 16px and stays zoomed: every field is 16px on touch and phones */
+  .v5.v5.v5 :is(input:not([type=range]):not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea){font-size:16px}
 }
 @media (prefers-reduced-motion:reduce){
   .v5 *, .v5 *::before, .v5 *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;animation-delay:0s!important;transition-duration:.01ms!important;transition-delay:0s!important}
@@ -165,6 +188,6 @@
 
 /* screen swaps: one crossfade (View Transitions API), shared thumbnails morph into the project hero */
 ::view-transition-old(root),::view-transition-new(root){animation-duration:180ms;animation-timing-function:cubic-bezier(.2,.8,.2,1)}
-::view-transition-group(*){animation-duration:280ms;animation-timing-function:cubic-bezier(.23,1,.32,1)}
+::view-transition-group(*){animation-duration:220ms;animation-timing-function:cubic-bezier(.23,1,.32,1)}
 ::view-transition-image-pair(*){isolation:auto}
 @media (prefers-reduced-motion:reduce){::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}}

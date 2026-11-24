@@ -26,7 +26,7 @@
   & .badge.fin{background:rgba(14,27,51,.72);color:#fff}
   & .badge.wip{background:var(--pink);color:#fff}
   & .runs-n{position:absolute;right:10px;bottom:10px;z-index:2;background:rgba(14,27,51,.72);color:#fff}
-  & .menu-btn{position:absolute;right:18px;top:18px;z-index:3;width:34px;height:34px;border-radius:50%;border:0;background:#fff;color:var(--ink-2);display:grid;place-items:center;cursor:pointer;transition:background-color .15s,color .15s}
+  & .menu-btn{position:absolute;right:18px;top:18px;z-index:3;width:34px;height:34px;padding:0;gap:0;border-radius:50%;border:0;background:#fff;color:var(--ink-2);display:grid;place-items:center;cursor:pointer;transition:background-color .15s,color .15s}
   & .menu-btn::before{content:"";position:absolute;inset:-5px}
   & .menu{position:absolute;right:18px;top:58px;z-index:6;min-width:228px;padding:6px;border-radius:14px;background:#fff;box-shadow:0 18px 40px -16px rgba(14,27,51,.35),0 0 0 1px var(--line);transform-origin:top right;transition:opacity .16s var(--ease),transform .16s var(--ease),visibility 0s}
   & .menu.shut{opacity:0;transform:scale(.96);pointer-events:none;visibility:hidden;transition:opacity .16s var(--ease),transform .16s var(--ease),visibility 0s .16s}
@@ -46,9 +46,9 @@
   & .st.done{color:var(--blue-deep)}
   & .empty{grid-column:1/-1;display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:56px 24px;border-radius:var(--r-card);border:2px dashed #C7D3EA;background:rgba(255,255,255,.65)}
   & .empty .ico{width:56px;height:56px;border-radius:50%;background:var(--blue-soft);color:var(--blue);display:grid;place-items:center;margin-bottom:8px}
-  & .empty h2{font-size:22px}
+  & .empty h2{font-size:22px;max-width:100%;overflow-wrap:anywhere}
   & .empty p{margin:0 0 12px;max-width:46ch;color:var(--ink-2)}
-  & .pgrid > .pc{animation:v5-rise .28s var(--ease) both}
+  & .pgrid > .pc{animation:v5-rise .22s var(--ease) both}
 
   @media (hover:hover) and (pointer:fine){
     & .seg button:not([aria-pressed=true]):hover{color:var(--ink)}
@@ -77,7 +77,7 @@
   & .hframe .badge{left:16px;top:16px;min-height:30px;padding:0 12px;font-size:13.5px}
   & .sum{display:flex;flex-direction:column;min-width:0;padding-top:4px}
   & .sum-name{display:flex;align-items:flex-start;gap:8px}
-  & .sum h1{font-size:30px;line-height:1.2;overflow-wrap:anywhere;font-weight:700}
+  & .sum h1{font-size:30px;line-height:1.2;overflow-wrap:anywhere;font-weight:700;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;line-clamp:4;overflow:hidden}
   & .icon-btn{flex:none;width:44px;height:44px;border-radius:50%;border:0;background:transparent;color:var(--ink-2);display:grid;place-items:center;cursor:pointer;margin-top:-4px;transition:background-color .15s,color .15s}
   & .rename{display:flex;gap:8px;flex-wrap:wrap}
   & .rename input{flex:1 1 240px;min-width:0;min-height:48px;padding:0 14px;border-radius:var(--r-ctl);border:0;box-shadow:inset 0 0 0 2px var(--blue);font:700 18px "DM Sans",sans-serif;color:var(--ink);background:#fff}
@@ -108,7 +108,7 @@
   & .ochip{display:flex;align-items:center;gap:12px;min-height:64px;padding:10px 16px 10px 12px;border-radius:16px;background:#fff;box-shadow:inset 0 0 0 1px var(--line)}
   & .ochip .sw{width:34px;height:34px}
   & .ochip div{display:flex;flex-direction:column;min-width:0}
-  & .ochip b{font-size:15px}
+  & .ochip b{font-size:15px;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden}
   & .ochip small{font-size:13px;color:var(--ink-2);font-variant-numeric:tabular-nums}
 
   /* renders list */
@@ -129,13 +129,15 @@
   & .rc.none .v{font-weight:500;color:var(--ink-2)}
   & .rc small{display:none}
   & .rdl .btn{min-height:44px;width:100%;padding:0 14px;font-size:14px}
-  & .rdl .btn[disabled]{opacity:.45;cursor:not-allowed}
+  & .rdl .btn[disabled]{background:var(--panel-2);color:var(--ink-3);box-shadow:inset 0 0 0 1.5px var(--line);cursor:not-allowed}
   & .rdl .note{display:block;margin-top:4px;font-size:12.5px;color:var(--ink-2);text-align:center}
   & .rexp{width:44px;height:44px;border-radius:50%;border:0;background:var(--panel-2);color:var(--ink-2);display:grid;place-items:center;cursor:pointer;transition:transform .22s var(--ease),background-color .15s,color .15s}
   & .run.open .rexp{transform:rotate(180deg)}
-  & .rbody{display:grid;grid-template-rows:0fr;transition:grid-template-rows .24s var(--ease)}
+  /* the row opens at once (no height animation: transform/opacity only); its content fades in */
+  & .rbody{display:grid;grid-template-rows:0fr}
   & .run.open .rbody{grid-template-rows:1fr}
-  & .rin{min-height:0;overflow:hidden}
+  & .rin{min-height:0;overflow:hidden;opacity:0;transition:opacity .18s var(--ease)}
+  & .run.open .rin{opacity:1}
   & .rgrid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:28px;padding:8px 18px 22px;background:#FAFBFD}
   & .pv{position:relative;aspect-ratio:16/9;border-radius:16px;overflow:hidden;background:var(--viewer);isolation:isolate}
   & .play{position:absolute;inset:0;margin:auto;width:64px;height:64px;border:0;border-radius:50%;background:rgba(255,255,255,.94);color:var(--ink);display:grid;place-items:center;cursor:pointer;z-index:2;transition:transform .12s ease,color .15s}
@@ -155,11 +157,11 @@
   & .norun b{display:block;color:var(--ink);font-size:16px;margin-bottom:4px}
 
   /* step entry: hero frame first, the rest of the page 80ms later */
-  & .hframe{animation:v5-rise .28s var(--ease-out) both}
+  & .hframe{animation:v5-rise .22s var(--ease-out) both}
   & .d-rest{animation:v5-rise .22s var(--ease-out) .08s both}
 
   /* right rail: the other projects; the current one is marked */
-  & .prail{position:sticky;top:16px;min-width:0;display:flex;flex-direction:column;gap:10px;max-height:calc(100vh - 32px)}
+  & .prail{position:sticky;top:16px;min-width:0;display:flex;flex-direction:column;gap:10px;max-height:calc(100vh - 32px);max-height:calc(100dvh - 32px)}
   & .prail h2{font-size:15px;font-family:"DM Sans",sans-serif;letter-spacing:0;font-weight:700;color:var(--ink-2);display:flex;align-items:baseline;gap:8px;padding:0 4px}
   & .prail h2 .n{font-size:12.5px;font-weight:600;color:var(--ink-3);font-variant-numeric:tabular-nums}
   & .prail ul{list-style:none;margin:0;padding:4px;display:flex;flex-direction:column;gap:6px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
@@ -237,11 +239,13 @@
   }
 }
 .v5 .projects{
+  @media (pointer:coarse){& .seg button, & .sort select{min-height:44px}}
   @media (max-width:767px){
     & .ph h1{font-size:28px}
     & .tools{gap:10px}
     & .seg{width:100%}
-    & .seg button{flex:1;justify-content:center;padding:0 8px;min-height:40px}
+    & .seg button{flex:1;justify-content:center;padding:0 8px;min-height:44px}
+    & .sort select{min-height:44px}
     & .sort{margin-left:0}
     & .pgrid{grid-template-columns:minmax(0,1fr);gap:16px}
     & .menu-btn{width:44px;height:44px;right:14px;top:14px}

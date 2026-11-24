@@ -14,7 +14,7 @@ export const STEP_SCREENS = ['upload', 'detect', 'colorize', 'mood', 'results'] 
 export const PROJECT_SCREENS: readonly Screen[] = ['upload', 'detect', 'colorize', 'mood', 'render', 'results'];
 
 /** First tour step of each page (tutorial-v5.md), used by the Tutorial buttons. */
-export const TOUR_FIRST: Record<Screen, number> = { intro: 1, home: 1, upload: 4, detect: 8, colorize: 12, mood: 16, render: 19, results: 21, projects: 24, project: 24 };
+export const TOUR_FIRST: Record<Screen, number> = { intro: 1, home: 1, upload: 4, detect: 8, colorize: 12, mood: 16, render: 19, results: 21, projects: 24, project: 25 };
 
 const isScreen =(s: string | null): s is Screen => !!s && (SCREENS as readonly string[]).includes(s);
 
@@ -32,10 +32,13 @@ export function hasScreenParam(search: string): boolean {
   return isScreen(new URLSearchParams(search).get('screen'));
 }
 
-/** 1-based tour step from ?tour=n, or null. */
+/** Number of tour steps (tutorial-v5.md). */
+export const TOUR_STEPS = 26;
+
+/** 1-based tour step from ?tour=n (1-26), or null. */
 export function tourFromUrl(search: string): number | null {
   const n = Number(new URLSearchParams(search).get('tour'));
-  return Number.isInteger(n) && n >= 1 ? n : null;
+  return Number.isInteger(n) && n >= 1 ? Math.min(n, TOUR_STEPS) : null; // clamped to the tour's 26 steps
 }
 
 function basePath(): string {

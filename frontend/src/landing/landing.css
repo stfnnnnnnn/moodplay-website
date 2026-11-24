@@ -17,7 +17,8 @@ body{margin:0;color:var(--ink);font:400 17px/1.6 "DM Sans",system-ui,sans-serif;
 .wrap{max-width:1240px;margin:0 auto;padding:0 clamp(20px,4vw,48px);position:relative;z-index:1}
 .wrap.wide{max-width:1440px}
 .navwrap{z-index:10}
-.logo{display:block;height:47px;width:248px;overflow:hidden}.logo img{width:248px;height:auto;display:block}
+/* text-only wordmark (owner 2026-11-25: no icon); same type as the demo's top-bar wordmark */
+.logo{display:inline-flex;align-items:center;min-height:44px;font:800 36px/1 Sora,sans-serif;letter-spacing:-.045em;text-decoration:none;white-space:nowrap}.mp .logo .m{color:var(--blue)}.mp .logo .p{color:var(--pink)}
 .logo-sx{display:block;height:42px;width:224px;overflow:hidden}.logo-sx img{width:224px;height:auto;display:block}
 
 /* nav */
@@ -341,8 +342,7 @@ body{margin:0;color:var(--ink);font:400 17px/1.6 "DM Sans",system-ui,sans-serif;
   .cfoot{flex-direction:column;gap:8px}
 }
 @media (max-width:420px){
-  .logo{display:flex;align-items:center;width:200px;height:44px}
-  .logo img{width:200px}
+  .logo{font-size:30px}
   .menu-btn{padding:0 14px}
 }
 /* reduced motion: no movement and no staged entrances; opacity crossfades stay because they explain state changes */

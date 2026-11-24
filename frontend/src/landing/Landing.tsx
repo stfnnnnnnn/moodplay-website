@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import wordmark from '../assets/landing/moodplay-wordmark.png';
 import synaptechx from '../assets/landing/synaptechx-wordmark.png';
 import Features from './Features';
 import Steps from './Steps';
@@ -59,7 +58,7 @@ export default function Landing({ isSignedIn, isAuthenticating, onSignIn, onShow
 
       <div className="wrap navwrap">
         <nav aria-label="Main" ref={navRef}>
-          <a href="#" className="logo" aria-label="MoodPlay home"><img src={wordmark} alt="MoodPlay" width={800} height={150} fetchPriority="high" /></a>
+          <a href="#" className="logo" aria-label="MoodPlay home"><span className="m">Mood</span><span className="p">Play</span></a>
           <button type="button" className="menu-btn" aria-expanded={menuOpen} aria-controls="nav-links" onClick={() => setMenuOpen((o) => !o)}>
             <span className="bars" aria-hidden="true"><i /><i /></span>
             Menu

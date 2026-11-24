@@ -242,6 +242,9 @@
 :root[data-vt] .v5 :is(.sp-upload[data-state=file] .uviewer,.sp-detect .dviewer,.sp-colorize .cviewer,.sp-mood .boardwrap,.sp-render .rstage,.sp-results .rcmp){view-transition-name:mp-frame}
 :root[data-vt] .v5 .tour-root{view-transition-name:mp-tour}
 :root[data-vt] .v5 > .toast{view-transition-name:mp-toast}
+/* into or out of the first-run intro (DemoApp sets data-vt-intro): the intro's top-left wordmark and the top bar's are
+   one element, so the name stays put (or glides, where the two bars differ) instead of crossfading (task C) */
+:root[data-vt][data-vt-intro] .v5 :is(.fr-top,.topbar) .wmk{view-transition-name:mp-wmk}
 /* mp-thumb: DemoApp names one project thumbnail (data-thumb) for one transition only, between Home / Projects and a
    project page, so the opened card's thumbnail grows into the hero; every other thumbnail moves with its page */
 /* while a transition runs, the pages' own entrance keyframes finish at once (the transition is the entrance);
@@ -263,6 +266,9 @@
 /* still layers */
 ::view-transition-group(mp-tour),::view-transition-group(mp-toast),::view-transition-new(mp-tour),::view-transition-new(mp-toast){animation:none}
 ::view-transition-old(mp-tour),::view-transition-old(mp-toast){animation:none;opacity:0}
+/* the wordmark: one picture that moves (the group's own morph); no crossfade of the two identical names */
+::view-transition-old(mp-wmk){animation:none;opacity:0}
+::view-transition-new(mp-wmk){animation:none}
 :root[data-vt=fwd]::view-transition-group(mp-top),:root[data-vt=back]::view-transition-group(mp-top),
 :root[data-vt=fwd]::view-transition-new(mp-top),:root[data-vt=back]::view-transition-new(mp-top){animation:none}
 :root[data-vt=fwd]::view-transition-old(mp-top),:root[data-vt=back]::view-transition-old(mp-top){animation:none;opacity:0}

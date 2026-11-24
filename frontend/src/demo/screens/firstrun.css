@@ -49,16 +49,31 @@
   &.entering .fr-hero h1 .w{opacity:0;transform:translateY(14px)}
   &.entering .fr-hero h1 .wm{visibility:hidden}
   &.landed .fr-hero h1 .w{animation:v5-up .55s cubic-bezier(.2,.8,.2,1) both}
-  /* the welcome screen already shows the name, so the small top-left wordmark waits for the next screens */
-  & .fr-top .wmk{transition:opacity .2s cubic-bezier(.2,.8,.2,1);font-size:24px;line-height:1.1;min-height:0}
+  /* the welcome screen already shows the name, so the small top-left wordmark waits for the next screens. It is the
+     same name: leaving the welcome, the big one glides up into it (FirstRun.tsx, task C), so it never fades. While it
+     glides (data-wfly) the small one is drawn and the heading's one is hidden; on landing, the one for the slide shows. */
   &[data-s="0"] .fr-top .wmk{opacity:0;visibility:hidden}
+  &[data-wfly] .fr-top .wmk{opacity:1;visibility:visible}
+  &[data-wfly] .fr-hero h1 .wm{visibility:hidden}
+  /* leaving the welcome, the next slide's heading waits until the name has risen clear of it (otherwise the gliding
+     name passes through "Your colors. Your mood.", most visibly on phones), then fades in; done (300ms) before the
+     glide lands (320ms), so nothing changes when data-wfly goes */
+  &[data-wfly]:not([data-s="0"]) .scr.on .sec-h{opacity:0;animation:v5-fadeIn .18s cubic-bezier(.2,.8,.2,1) .12s both}
+  /* back to the welcome, the name grows down past "Welcome to" (which sits just above it): it waits until the name
+     has nearly landed, then fades in, done (300ms) before the glide lands (320ms), as the features heading does. This
+     replaces its launch rise meanwhile (a phone re-shows the slide from display:none, which would replay it); when
+     data-wfly goes, the rise comes back from opacity 1, so it changes nothing. */
+  &[data-wfly][data-s="0"] .fr-hero h1 .w{opacity:0;animation:v5-fadeIn .16s cubic-bezier(.2,.8,.2,1) .14s both}
   &[data-s="1"] .fr-back{visibility:hidden}
   &[data-s="0"] .scr.fr-hero{cursor:pointer}
 
   /* ---------- first-run screens ---------- */
   & .fr-app{position:relative;height:100vh;height:100dvh;overflow:hidden}
   & .fr-bloom{position:absolute;border-radius:50%;filter:blur(90px);pointer-events:none;z-index:0}
-  & .fr-top{position:absolute;top:0;left:0;right:0;z-index:5;display:flex;align-items:center;justify-content:space-between;padding:18px 28px}
+  /* the same box as Home's top bar (demo.css .topbar: 16px + its 42px search field + 16px = 74px tall from 768px up),
+     so the wordmark hands off to Home's on the same pixels */
+  & .fr-top{position:absolute;top:0;left:0;right:0;z-index:5;display:flex;align-items:center;justify-content:space-between;
+    max-width:1440px;margin:0 auto;padding:16px var(--gutter);min-height:74px}
   & .scr{position:absolute;inset:0;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:84px 40px 110px;
     opacity:0;visibility:hidden;transform:translateX(40px);transition:opacity .2s cubic-bezier(.2,.8,.2,1),transform .2s cubic-bezier(.2,.8,.2,1),visibility 0s .2s}
   /* slide to slide moves like the demo's step pages (task B1): the new slide comes in 40px from the side you are
@@ -162,8 +177,8 @@
     &[data-s="2"] .bar .r{grid-column:1/-1;grid-row:2;justify-content:center}
     &[data-s="2"] .scr{padding-bottom:190px}
   }
+  @media (max-width:767px){& .fr-top{padding-top:10px;padding-bottom:10px;min-height:0}}
   @media (max-width:600px){
-    & .fr-top{padding:14px 16px}
     & .fr-hero h1{font-size:min(14vw,22vh)}
     & .scr{padding:76px 16px 200px}
     & .bar{grid-template-columns:1fr auto 1fr;row-gap:12px;padding:14px 16px max(16px,env(safe-area-inset-bottom))}

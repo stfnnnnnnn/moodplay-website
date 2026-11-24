@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import { flushSync } from 'react-dom';
 import './demo.css';
 import { DemoProvider, useDemo, useDemoExtra } from './store';
-import { PROJECT_SCREENS, hasScreenParam, screenFromUrl, type Screen, type ScreenProps } from './nav';
+import { PROJECT_SCREENS, hasScreenParam, introFromUrl, screenFromUrl, withoutIntro, type Screen, type ScreenProps } from './nav';
 import { DemoUiContext, navFocus, prefersReducedMotion, type DemoUi } from './ui';
 import FirstRun from './screens/FirstRun';
 import Home from './screens/Home';
@@ -59,19 +59,38 @@ function Shell() {
   const [route, setRoute] = useState<Route>(readRoute);
   const [query, setQuery] = useState('');
   const first = useRef(true);
+  // ?intro=1 (the landing's "Try the demo") plays the intro even when it was seen earlier this session (task C).
+  // The marker is read once, then removed from the URL, so a reload or Back does not replay it.
+  // (a deep link, ?screen= or ?tour=, outranks it: the marker is then ignored and only stripped)
+  const [forceIntro, setForceIntro] = useState(() =>
+    introFromUrl(location.search) && !hasScreenParam(location.search) && deepLinkStep(location.search) == null);
+  useLayoutEffect(() => {
+    const clean = withoutIntro(location.search);
+    if (clean !== location.search) history.replaceState(history.state, '', location.pathname + clean + location.hash);
+  }, []);
 
   // Browser back/forward and go() both arrive here as popstate. The swap runs as a view transition whose
   // direction (html[data-vt], read by demo.css) comes from where the two screens sit in the flow.
+  // The listener is attached in a layout effect: every layout effect of a commit runs before any passive one, so it
+  // is listening before a child's passive effect navigates with go() (the Tour opening its step's screen on load).
   const shown = useRef<{ screen: Screen; id?: string }>({ screen: 'home' });
-  useEffect(() => {
+  useLayoutEffect(() => {
     let token = 0;
     const onPop = () => {
-      const next = readRoute();
-      const apply = () => { setRoute(next); window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); };
+      const next = readRoute(), from = shown.current;
+      // leaving the intro marks it seen in the same update as the new route, so the transition's old picture is still
+      // the intro (its wordmark hands off to the app's top bar) and Back to a bare /demo shows Home, not the intro again
+      const leavesIntro = from.screen === 'intro' && next.screen !== 'intro';
+      const apply = () => {
+        if (leavesIntro) { markFirstRunSeen(); setForceIntro(false); }
+        setRoute(next); window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      };
       const doc = document as DocWithVT;
       if (doc.startViewTransition && !prefersReducedMotion() && document.visibilityState === 'visible') {
-        const root = document.documentElement, mine = ++token, from = shown.current;
+        const root = document.documentElement, mine = ++token;
         root.dataset.vt = vtDirection(from.screen, next.screen);
+        // into or out of the intro: its top-left wordmark and the app's top-bar wordmark share one name (demo.css)
+        if (from.screen === 'intro' || next.screen === 'intro') root.dataset.vtIntro = ''; else delete root.dataset.vtIntro;
         // Between Home / Projects and a project page, the opened project's thumbnail grows into the hero (and back):
         // only that one element is named, only for this transition (old side now, new side after the update)
         const thumbId = HUBS.has(from.screen) && HUBS.has(next.screen)
@@ -81,7 +100,7 @@ function Shell() {
         const name = (el: HTMLElement | null) => { if (el) { el.style.viewTransitionName = 'mp-thumb'; named.push(el); } };
         const unname = () => { named.forEach(el => { el.style.viewTransitionName = ''; }); named.length = 0; };
         name(pick());
-        const clear = () => { unname(); if (mine === token) delete root.dataset.vt; };
+        const clear = () => { unname(); if (mine === token) { delete root.dataset.vt; delete root.dataset.vtIntro; } };
         try {
           const vt = doc.startViewTransition(() => {
             const had = named.length > 0;
@@ -101,7 +120,7 @@ function Shell() {
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
-  }, []);
+  }, [markFirstRunSeen]); // stable (store memo): the listener is added once
 
   // ?tour=n deep link starts the tour at that step (1-26; with ?screen= set, at that screen's first step when n
   // belongs to another page). Without ?screen= the tour opens the step's screen itself, so the link skips the intro.
@@ -112,9 +131,18 @@ function Shell() {
 
   // a ?tour=n link skips the first-run intro from the first render (ruling R14), so the tour opens step n's screen
   const [tourLink] = useState(() => deepLinkStep(location.search) != null);
-  const showIntro = route.screen === 'intro' || (!route.explicit && !state.firstRunSeen && !tourLink);
+  const showIntro = route.screen === 'intro' || (!route.explicit && (forceIntro || !state.firstRunSeen) && !tourLink);
   const screen: Screen = showIntro ? 'intro' : route.screen;
   useEffect(() => { shown.current = { screen, id: route.id }; }, [screen, route.id]);
+
+  // A replayed intro (?intro=1) pauses a tour left running earlier in the session: its step is kept (the Resume chip
+  // shows after the intro), and its keys (Tab, Esc) no longer act on a hidden card over the intro. Once, on load.
+  const introPaused = useRef(false);
+  useEffect(() => {
+    if (introPaused.current || !forceIntro) return;
+    introPaused.current = true;
+    if (showIntro && state.tour?.active) dispatch({ type: 'tour', step: state.tour.step, active: false });
+  }, [forceIntro, showIntro, state.tour, dispatch]);
 
   // Deep link / refresh mid-flow: a step screen without a current project opens one (an in-progress one first).
   const needsProject = PROJECT_SCREENS.includes(screen) && !current;

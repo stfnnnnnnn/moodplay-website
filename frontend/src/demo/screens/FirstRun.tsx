@@ -1,24 +1,38 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type MouseEvent } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type MouseEvent } from 'react';
 import './firstrun.css';
 import { Scene } from '../scene';
-import { useDemo, useDemoExtra } from '../store';
+import { useDemo } from '../store';
 import { demoHref, go } from '../nav';
 import { prefersReducedMotion } from '../ui';
 
-/* First run (first-run-v3.html). Once per session (state.firstRunSeen):
+/* First run (first-run-v3.html). Once per session (state.firstRunSeen), and on every "Try the demo" (?intro=1):
    1. Launch: the compare handle sweeps across the wordmark and colours it, the stage lights come up,
       then the wordmark flies into the welcome heading while the dark backdrop wipes away.
    2. Welcome holds ~5 s (a click or key moves on; the timer pauses while the tab is hidden).
-   3. Features, then How it works, with "Colorize my own video" and "Start tutorial". */
+      Leaving it, the big "MoodPlay" glides up into the small top-left wordmark (and back on Back) (task C).
+   3. Features, then How it works, with "Colorize my own video" and "Start tutorial". Leaving the intro, the top-left
+      wordmark hands off to the app's top-bar wordmark (a shared view-transition name, DemoApp + demo.css).
+   The shell marks the intro seen when it navigates away from it (DemoApp), in the same update as the new screen. */
 
 const HOLD = 5000;
 const SCREENS = 3;
+/* welcome <-> features wordmark glide: screen-level pace (R18) */
+const WM_MS = 320;
+const WM_EASE = 'cubic-bezier(.2,.8,.2,1)';
+
+/** l = left edge, w = width, c = vertical centre (the two names' boxes differ in line-height, their centres do not) */
+interface Box { l: number; w: number; c: number }
+/** The painted text of a wordmark: from its first word's left edge to its last word's right edge (transforms included). */
+function textBox(el: Element | null): Box | null {
+  const a = el?.firstElementChild?.getBoundingClientRect(), b = el?.lastElementChild?.getBoundingClientRect();
+  if (!a || !b || b.right - a.left < 1) return null;
+  return { l: a.left, w: b.right - a.left, c: (Math.min(a.top, b.top) + Math.max(a.bottom, b.bottom)) / 2 };
+}
 
 type Phase = 'play' | 'fly' | 'done';
 
 export default function FirstRun() {
   const { dispatch } = useDemo();
-  const { markFirstRunSeen } = useDemoExtra();
   const [reduce] = useState(prefersReducedMotion);
   const [cur, setCur] = useState(0);
   const [dir, setDir] = useState<'fwd' | 'back'>('fwd'); // which way the last slide change went (CSS mirrors the slide)
@@ -35,12 +49,34 @@ export default function FirstRun() {
   const timers = useRef<number[]>([]);
   const flight = useRef<Animation | null>(null);
   const auto = useRef<{ t: number | null; left: number; t0: number }>({ t: null, left: HOLD, t0: 0 });
+  const rootRef = useRef<HTMLDivElement>(null);
+  const heroRef = useRef<HTMLElement>(null);
+  const wmkRef = useRef<HTMLSpanElement>(null);
+  const glide = useRef<Animation | null>(null);
+  const glideFrom = useRef<Box | null>(null);
+
+  /** The welcome heading's name where it rests (its slide's own enter / leave offset taken out). */
+  const bigBox = useCallback((): Box | null => {
+    const b = textBox(targetRef.current), hero = heroRef.current;
+    if (!b || !hero) return b;
+    const tf = getComputedStyle(hero).transform;
+    const m = tf && tf !== 'none' ? new DOMMatrixReadOnly(tf) : null;
+    return m ? { l: b.l - m.m41, w: b.w, c: b.c - m.m42 } : b;
+  }, []);
 
   // The "How it works" numbers use Sora (ruling R5): no font is loaded at runtime, so the demo makes no third-party request.
 
   const show = useCallback((i: number) => {
     i = Math.max(0, Math.min(SCREENS - 1, i));
     if (i === curRef.current) return;
+    // every slide starts at its top (phones scroll the page; a slide must not open mid-way, and the name's glide must
+    // start from the header where it is painted, not from off-screen). Before any measuring below.
+    if (window.scrollY || window.scrollX) window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    // to or from the welcome: remember where the name is painted now (mid-glide, or the big heading, or the small
+    // wordmark); the glide starts from there once the new slide is laid out (layout effect below)
+    if (!reduce && (i === 0) !== (curRef.current === 0)) {
+      glideFrom.current = !glide.current && curRef.current === 0 ? bigBox() : textBox(wmkRef.current);
+    }
     setDir(i > curRef.current ? 'fwd' : 'back');
     curRef.current = i;
     setCur(i);
@@ -53,7 +89,52 @@ export default function FirstRun() {
       if (h && document.activeElement !== h && tries < 10) focusH(tries + 1);
     });
     focusH(0);
-  }, []);
+  }, [reduce, bigBox]);
+
+  /* The name travels with the slide change (FLIP): the small top-left wordmark is the one element that moves. It is
+     drawn where the name was (big, in the welcome heading) and glides to where it belongs: its own place on the
+     features and how-it-works slides, or back into the heading on the welcome. While it flies (data-wfly) the
+     heading's name is hidden; when it lands, CSS shows the one that belongs to the slide, on the same pixels.
+     Transform only, one WAAPI animation; a new slide change mid-glide starts from where the name is. */
+  const runGlide = useCallback((from: Box, toBig: boolean, ms: number) => {
+    const wmk = wmkRef.current, root = rootRef.current;
+    if (!wmk || !root) return;
+    glide.current?.cancel(); glide.current = null;
+    const rest = textBox(wmk), box = wmk.getBoundingClientRect();
+    const to = toBig ? bigBox() : rest;
+    if (!rest || !to) { delete root.dataset.wfly; return; }
+    // scaled about the text's left edge on its centre line, so the name's left edge and centre land on the target's
+    const at = (x: Box) => `translate(${x.l - rest.l}px,${x.c - rest.c}px) scale(${x.w / rest.w})`;
+    wmk.style.transformOrigin = `${rest.l - box.left}px ${rest.c - box.top}px`;
+    root.dataset.wfly = '';
+    const a = wmk.animate([{ transform: at(from) }, { transform: at(to) }], { duration: ms, easing: WM_EASE, fill: 'forwards' });
+    glide.current = a;
+    a.onfinish = () => {
+      if (glide.current !== a) return;
+      glide.current = null;
+      delete root.dataset.wfly;
+      a.cancel();
+    };
+  }, [bigBox]);
+  // Measured in the commit (layout effect), the standard FLIP trade-off: one forced layout per slide change, so the
+  // name is never painted a frame in the wrong place.
+  useLayoutEffect(() => {
+    const from = glideFrom.current;
+    glideFrom.current = null;
+    if (from) runGlide(from, cur === 0, WM_MS);
+  }, [cur, runGlide]);
+  // a resize mid-glide re-aims it: from where the name is painted now to the re-measured target, in the time left
+  useEffect(() => {
+    const onResize = () => {
+      const a = glide.current, from = textBox(wmkRef.current);
+      if (!a || !from) return;
+      const left = WM_MS - Number(a.currentTime ?? 0);
+      runGlide(from, curRef.current === 0, Math.max(60, left));
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [runGlide]);
+  useEffect(() => () => { glide.current?.cancel(); }, []);
 
   const autoStop = useCallback(() => {
     const a = auto.current;
@@ -69,11 +150,19 @@ export default function FirstRun() {
 
   const setP = useCallback((p: Phase) => { phaseRef.current = p; setPhase(p); }, []);
 
+  // the welcome heading takes focus as the launch lands (or at once with reduced motion), so a screen reader announces
+  // "Welcome to MoodPlay" each time the intro plays; only when nothing else has focus (it never steals focus)
+  const focusWelcome = useCallback(() => {
+    const h = document.getElementById('fr-h0'), act = document.activeElement;
+    if (curRef.current === 0 && h && (act == null || act === document.body)) h.focus({ preventScroll: true });
+  }, []);
+
   const land = useCallback(() => {
     setP('done'); setLanded(true);
     auto.current.left = HOLD;
     autoStart();
-  }, [autoStart, setP]);
+    focusWelcome();
+  }, [autoStart, setP, focusWelcome]);
 
   /* the wordmark flies into the welcome heading (FLIP), tinting to the brand colours on the way */
   const fly = useCallback((dur: number) => {
@@ -96,7 +185,7 @@ export default function FirstRun() {
   // Play once on mount.
   useEffect(() => {
     const ts = timers.current;
-    if (reduce) { autoStart(); }
+    if (reduce) { autoStart(); focusWelcome(); }
     else ts.push(window.setTimeout(() => fly(650), 2000));
     const onVis = () => { if (document.hidden) autoStop(); else autoStart(); };
     document.addEventListener('visibilitychange', onVis);
@@ -106,7 +195,7 @@ export default function FirstRun() {
       autoStop();
       document.removeEventListener('visibilitychange', onVis);
     };
-  }, [reduce, fly, autoStart, autoStop]);
+  }, [reduce, fly, autoStart, autoStop, focusWelcome]);
 
   // Keys: during the launch any key skips it; on the welcome any key moves on; then ← / → page.
   useEffect(() => {
@@ -125,14 +214,12 @@ export default function FirstRun() {
   }, [fly, show, autoStop]);
 
   const startTutorial = () => {
-    markFirstRunSeen();
     dispatch({ type: 'createSample' });
     dispatch({ type: 'tour', step: 1 });
     go('home', { tour: 1 });
   };
   const ownVideo = (e: MouseEvent) => {
     e.preventDefault();
-    markFirstRunSeen();
     go('upload');
   };
 
@@ -141,7 +228,7 @@ export default function FirstRun() {
   const scr = (i: number) => 'scr' + (i === cur ? ' on' : '') + (i < cur ? ' past' : '');
 
   return (
-    <div className={rootClass} data-s={cur} data-dir={dir}>
+    <div className={rootClass} data-s={cur} data-dir={dir} ref={rootRef}>
       {!reduce && (
         <div className={introClass} ref={introRef} role="presentation" title="Click to skip" onClick={() => fly(380)}>
           <div className="bg"><span className="light lb" /><span className="light lp" /></div>
@@ -163,12 +250,12 @@ export default function FirstRun() {
         <span className="fr-bloom" style={{ width: 520, height: 520, left: '28%', bottom: -340, background: 'rgba(255,206,224,.55)' }} aria-hidden="true" />
 
         <header className="fr-top">
-          <span className="wmk" aria-label="MoodPlay"><span className="m">Mood</span><span className="p">Play</span></span>
+          <span className="wmk" aria-label="MoodPlay" ref={wmkRef}><span className="m">Mood</span><span className="p">Play</span></span>
         </header>
 
         <main>
           {/* 1. welcome */}
-          <section className={scr(0) + ' fr-hero'} aria-labelledby="fr-h0" aria-hidden={cur !== 0}
+          <section className={scr(0) + ' fr-hero'} ref={heroRef} aria-labelledby="fr-h0" aria-hidden={cur !== 0}
             onClick={() => { if (phaseRef.current === 'done' && curRef.current === 0) { autoStop(); show(1); } }}>
             <h1 id="fr-h0" tabIndex={-1}>
               <span className="w">Welcome to</span>

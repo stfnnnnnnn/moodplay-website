@@ -33,6 +33,21 @@ export function hasScreenParam(search: string): boolean {
   return isScreen(new URLSearchParams(search).get('screen'));
 }
 
+/** True when the URL asks for the first-run intro (?intro=1, the landing's "Try the demo" link). Any other value is
+ *  ignored. The intro then plays even when it was already seen this session (task C). */
+export function introFromUrl(search: string): boolean {
+  return new URLSearchParams(search).get('intro') === '1';
+}
+
+/** The same query without its intro marker (whatever its value), so a reload or Back does not replay the intro. */
+export function withoutIntro(search: string): string {
+  const q = new URLSearchParams(search);
+  if (!q.has('intro')) return search;
+  q.delete('intro');
+  const s = q.toString();
+  return s ? '?' + s : '';
+}
+
 /** Number of tour steps (tutorial-v5.md). */
 export const TOUR_STEPS = 26;
 

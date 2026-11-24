@@ -78,7 +78,7 @@ export default function Landing({ isSignedIn, isAuthenticating, onSignIn, onShow
           <h1><span className="p">Colorize videos.</span><span className="b">Give cinematic moods.</span></h1>
           <p>Pick a color for each person and thing in your video, and MoodPlay keeps it locked to them from the first frame to the last. Then give the whole scene a mood, from neon nights to warm sunsets.</p>
           <div className="ctas">
-            <a className="btn btn-pink" href="/demo">Try the demo</a>
+            <a className="btn btn-pink" href="/demo?intro=1">Try the demo</a>
           </div>
           <div className="fine">Free for Windows 10/11 with an NVIDIA graphics card. <a href="#requirements">Check your PC</a>. No install needed for the demo.</div>
         </header>
